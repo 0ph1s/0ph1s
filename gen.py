@@ -375,8 +375,80 @@ def ascii_anim(x, y, frame_fn, cols=60, rows=24, size=10.5, frames=48, step=0.11
     return css + "".join(groups)
 
 
+# ---------------------------------------------------------------------------
+# Retrato em ASCII colorido a partir de um PNG com transparência.
+# Cada célula vira um caractere escolhido pela luminância e pintado com a cor
+# média daquele pedaço da imagem (reduzida a poucas cores, para o SVG não
+# virar uma tspan por letra). As linhas aparecem uma a uma, como um render.
+# ---------------------------------------------------------------------------
+
+ART = Path(__file__).parent / "art"
+DENSITY = ".:-=+*#%@"
+
+
+def _mix(c, d, t):
+    return tuple(round(a + (b - a) * t) for a, b in zip(c, d))
+
+
+def _hex_rgb(h):
+    return tuple(int(h[i:i + 2], 16) for i in (1, 3, 5))
+
+
+def ascii_image(path, x, y, cols=76, size=6.5, colors=32, start=2.8):
+    from PIL import Image                      # só esta parte precisa do Pillow
+    im = Image.open(path).convert("RGBA")
+    im = im.crop(im.getchannel("A").getbbox())
+    cw, lh = CW * size, size
+    rows = round(cols * im.height / im.width * cw / lh)
+    # média com alfa pré-multiplicado, para a cor dos pixels transparentes não vazar
+    small = im.convert("RGBa").resize((cols, rows), Image.BOX).convert("RGBA")
+    alpha = small.getchannel("A")
+    pal = small.convert("RGB").quantize(colors, method=Image.Quantize.MEDIANCUT)
+    lut = pal.getpalette()
+
+    out = []
+    for r in range(rows):
+        cells = []
+        for c in range(cols):
+            if alpha.getpixel((c, r)) < 110:
+                cells.append((" ", None))
+                continue
+            i = pal.getpixel((c, r))
+            rgb = tuple(lut[3 * i:3 * i + 3])
+            lum = (0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]) / 255
+            # caracteres mais densos nas áreas claras, nos dois temas: quem dá o tom é a
+            # cor, e a densidade mínima é alta para ela continuar legível
+            ink = lum
+            ch = DENSITY[min(8, int((0.55 + 0.45 * ink) * 9))]
+            # cores que somem no fundo ganham contraste sem perder o tom:
+            # contorno preto vira cinza no escuro, branco vira cinza no claro
+            if not INVERT:
+                if lum < 0.12:
+                    rgb = _mix(rgb, _hex_rgb(DIM), 0.7)
+                elif lum < 0.6:
+                    rgb = _mix(rgb, (255, 255, 255), (0.6 - lum) * 0.9)
+            else:
+                # no branco, cores claras somem: escurece tudo, mais o que é mais claro
+                rgb = _mix(rgb, (0, 0, 0), 0.1 + 0.25 * lum)
+            cells.append((ch, "#%02x%02x%02x" % rgb))
+        out.append(cells)
+
+    texts = []
+    for r, line in enumerate(out):
+        filled = [i for i, (ch, _) in enumerate(line) if ch != " "]
+        if not filled:
+            continue
+        a, b = filled[0], filled[-1] + 1
+        body = []
+        for color, run in groupby(line[a:b], key=lambda cc: cc[1]):
+            run = "".join(ch for ch, _ in run)
+            body.append(f'<tspan fill="{color}">{run}</tspan>' if color else run)
+        texts.append(f'<text class="a" {delay(start + r * 0.025)} x="{x + a * cw:.1f}" y="{y + (r + 1) * lh:.1f}" '
+                     f'font-size="{size}" xml:space="preserve">{"".join(body)}</text>')
+    return "".join(texts), cols * cw, rows * lh
+
+
 def header():
-    h = 512
     p = []
     boot = [
         "montando /dev/dados",
@@ -390,11 +462,12 @@ def header():
 
     p.append(typed(0, 108, "./peterson --init", 1.6))
 
-    p.append(f'<g class="a" {delay(2.8)}>{ascii_anim(0, 128, capybara_frame, rows=26)}</g>')
+    art, aw, ah = ascii_image(ART / "retrato.png", 0, 128)
+    p.append(art)
 
-    # bloco estilo neofetch ao lado da animação, centrado na altura dela
-    ix, vx = 460, 542
-    top = 194
+    # bloco estilo neofetch ao lado do retrato, centrado na altura dele
+    ix, vx = round(aw) + 80, round(aw) + 162
+    top = round(128 + ah / 2 - 66)
     info = [
         ("nome", "Peterson Carara"),
         ("curso", "Ciência de Dados"),
@@ -413,9 +486,11 @@ def header():
         g.append(f'<rect x="{ix + i * 26}" y="{top + 38 + 6 * 19 - 6}" width="22" height="12" fill="{c}"/>')
     p.append(f'<g class="a" {delay(3.2)}>{"".join(g)}</g>')
 
-    p.append(t(0, 446, "Transformo dados em decisões e ideias em interfaces.", "hot glow a", 21, delay(3.6)))
-    p.append(f'<g class="a" {delay(4.0)}>{prompt(0, 500, "")}{caret((len(USER) + 4) * CW * 14, 500)}</g>')
-    return svg(h, "\n".join(p), "Capivara girando em ASCII. Peterson Carara, estudante de Ciência de Dados na FATEC Baixada Santista. "
+    ty = round(128 + ah + 52)
+    p.append(t(0, ty, "Transformo dados em decisões e ideias em interfaces.", "hot glow a", 21, delay(3.6)))
+    p.append(f'<g class="a" {delay(4.0)}>{prompt(0, ty + 54, "")}{caret((len(USER) + 4) * CW * 14, ty + 54)}</g>')
+    h = ty + 66
+    return svg(h, "\n".join(p), "Retrato em ASCII colorido. Peterson Carara, estudante de Ciência de Dados na FATEC Baixada Santista. "
                                  "Transformo dados em decisões e ideias em interfaces.")
 
 

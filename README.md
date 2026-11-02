@@ -1,4 +1,4 @@
-<picture><source media="(prefers-color-scheme: dark)" srcset="assets/dark/header.svg" /><source media="(prefers-color-scheme: light)" srcset="assets/light/header.svg" /><img src="assets/dark/header.svg" width="100%" alt="Animação ASCII de uma capivara girando. Peterson Carara, estudante de Ciência de Dados na FATEC Baixada Santista. Transformo dados em decisões e ideias em interfaces." /></picture>
+<picture><source media="(prefers-color-scheme: dark)" srcset="assets/dark/header.svg" /><source media="(prefers-color-scheme: light)" srcset="assets/light/header.svg" /><img src="assets/dark/header.svg" width="100%" alt="Retrato em ASCII colorido. Peterson Carara, estudante de Ciência de Dados na FATEC Baixada Santista. Transformo dados em decisões e ideias em interfaces." /></picture>
 
 <br />
 
