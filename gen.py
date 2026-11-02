@@ -413,7 +413,7 @@ def header():
 
     p.append(typed(0, 108, "./peterson --init", 1.6))
 
-    art, aw, ah = ascii_image(ART / "retrato.gif", 0, 128, cols=72, size=7, every=2, colors=10)
+    art, aw, ah = ascii_image(ART / "retrato.gif", 0, 128, cols=72, size=7, colors=10)
     p.append(art)
 
     # bloco estilo neofetch ao lado do retrato, centrado na altura dele
