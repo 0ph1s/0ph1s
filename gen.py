@@ -291,12 +291,15 @@ def _load_frames(path):
     return [(f.crop(box), d) for f, d in frames]
 
 
-def _cells(im, cols, rows, colors):
+def _cells(im, cols, rows, colors, palette=None):
     from PIL import Image
     # média com alfa pré-multiplicado, para a cor dos pixels transparentes não vazar
     small = im.convert("RGBa").resize((cols, rows), Image.BOX).convert("RGBA")
     alpha = small.getchannel("A")
-    pal = small.convert("RGB").quantize(colors, method=Image.Quantize.MEDIANCUT)
+    if palette is None:
+        pal = small.convert("RGB").quantize(colors, method=Image.Quantize.MEDIANCUT)
+    else:
+        pal = small.convert("RGB").quantize(palette=palette, dither=Image.Dither.NONE)
     lut = pal.getpalette()
     out = []
     for r in range(rows):
@@ -316,8 +319,8 @@ def _cells(im, cols, rows, colors):
             if not INVERT:
                 if lum < 0.12:
                     rgb = _mix(rgb, _hex_rgb(DIM), 0.7)
-                elif lum < 0.6:
-                    rgb = _mix(rgb, (255, 255, 255), (0.6 - lum) * 0.9)
+                elif lum < 0.4:
+                    rgb = _mix(rgb, (255, 255, 255), (0.4 - lum) * 0.8)
             else:
                 # no branco, cores claras somem: escurece tudo, mais o que é mais claro
                 rgb = _mix(rgb, (0, 0, 0), 0.1 + 0.25 * lum)
@@ -326,7 +329,25 @@ def _cells(im, cols, rows, colors):
     return out
 
 
-def _row(line, x, y, cw, size, extra=""):
+def _shared_palette(frames, cols, rows, colors, _cache={}):
+    """Uma paleta só para todos os quadros: as cores não piscam entre eles e
+    sobram menos trocas de cor por linha."""
+    from PIL import Image
+    key = (id(frames), cols, rows, colors)
+    if key not in _cache:
+        # só os pixels visíveis entram na paleta, senão o fundo rouba as cores
+        pixels = []
+        for im, _ in frames:
+            small = im.convert("RGBa").resize((cols, rows), Image.BOX).convert("RGBA")
+            raw = small.tobytes()
+            pixels += [tuple(raw[i:i + 3]) for i in range(0, len(raw), 4) if raw[i + 3] >= 110]
+        sheet = Image.new("RGB", (len(pixels), 1))
+        sheet.putdata(pixels)
+        _cache[key] = sheet.quantize(colors, method=Image.Quantize.MEDIANCUT)
+    return _cache[key]
+
+
+def _row(line, x, y, cw, size, extra="", names=None):
     filled = [i for i, (ch, _) in enumerate(line) if ch != " "]
     if not filled:
         return ""
@@ -334,13 +355,21 @@ def _row(line, x, y, cw, size, extra=""):
     body = []
     for color, run in groupby(line[a:b], key=lambda cc: cc[1]):
         run = "".join(ch for ch, _ in run)
-        body.append(f'<tspan fill="{color}">{run}</tspan>' if color else run)
+        if not color:
+            body.append(run)
+        elif names:
+            body.append(f'<tspan class="{names[color]}">{run}</tspan>')
+        else:
+            body.append(f'<tspan fill="{color}">{run}</tspan>')
     return (f'<text {extra} x="{x + a * cw:.1f}" y="{y:.1f}" font-size="{size}" '
             f'xml:space="preserve">{"".join(body)}</text>')
 
 
-def ascii_image(path, x, y, cols=100, size=5.5, colors=32, start=2.8):
+def ascii_image(path, x, y, cols=100, size=5.5, colors=32, start=2.8, every=1):
     frames = _load_frames(path)
+    if every > 1:
+        # GIFs longos pesam: usa um quadro a cada `every`, cada um durando mais
+        frames = [(f, d * every) for f, d in frames[::every]]
     cw, lh = CW * size, size
     w, h = frames[0][0].size
     rows = round(cols * h / w * cw / lh)
@@ -351,16 +380,20 @@ def ascii_image(path, x, y, cols=100, size=5.5, colors=32, start=2.8):
                       for r, line in enumerate(lines))
         return out, cols * cw, rows * lh
 
-    # GIF: o quadro k aparece no intervalo [k, k + 1) do ciclo
+    # GIF: o quadro k aparece no intervalo [k, k + 1) do ciclo. As cores viram
+    # classes curtas compartilhadas entre os quadros, o que encolhe muito o SVG.
     n = len(frames)
     step = sum(d for _, d in frames) / n / 1000
+    grids = [_cells(im, cols, rows, colors, _shared_palette(frames, cols, rows, colors)) for im, _ in frames]
+    used = sorted({c for g in grids for line in g for _, c in line if c})
+    names = {c: f"k{i}" for i, c in enumerate(used)}
+    palette = "".join(f".{names[c]}{{fill:{c}}}" for c in used)
     groups = []
-    for k, (im, _) in enumerate(frames):
-        lines = _cells(im, cols, rows, colors)
-        body = "".join(_row(line, x, y + (r + 1) * lh, cw, size) for r, line in enumerate(lines))
+    for k, lines in enumerate(grids):
+        body = "".join(_row(line, x, y + (r + 1) * lh, cw, size, names=names) for r, line in enumerate(lines))
         dl = -((n - k) % n) * step
         groups.append(f'<g class="fr{" f0" if k == 0 else ""}" style="animation-delay:{dl:.2f}s">{body}</g>')
-    css = (f"<style>.fr {{ opacity: 0; animation: frame {n * step:.2f}s step-end infinite; }}"
+    css = (f"<style>{palette}.fr {{ opacity: 0; animation: frame {n * step:.2f}s step-end infinite; }}"
            f"@keyframes frame {{ 0% {{ opacity: 1 }} {100 / n:.3f}% {{ opacity: 0 }} 100% {{ opacity: 0 }} }}"
            f"@media (prefers-reduced-motion: reduce) {{ .f0 {{ opacity: 1; }} }}</style>")
     return f'{css}<g class="a" {delay(start)}>{"".join(groups)}</g>', cols * cw, rows * lh
@@ -380,7 +413,7 @@ def header():
 
     p.append(typed(0, 108, "./peterson --init", 1.6))
 
-    art, aw, ah = ascii_image(ART / "retrato.gif", 0, 128, cols=100, size=6.5)
+    art, aw, ah = ascii_image(ART / "retrato.gif", 0, 128, cols=72, size=7, every=3, colors=10)
     p.append(art)
 
     # bloco estilo neofetch ao lado do retrato, centrado na altura dele
