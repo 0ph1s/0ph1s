@@ -1,26 +1,68 @@
-<picture><source media="(prefers-color-scheme: dark)" srcset="assets/dark/header.svg" /><source media="(prefers-color-scheme: light)" srcset="assets/light/header.svg" /><img src="assets/dark/header.svg" width="100%" alt="Animação em ASCII colorido. Peterson Carara, estudante de Ciência de Dados na FATEC Baixada Santista. Transformo dados em decisões e ideias em interfaces." /></picture>
+<div align="center">
 
-<br />
+# Olá, eu sou o Peterson 👋
 
-<picture><source media="(prefers-color-scheme: dark)" srcset="assets/dark/stack.svg" /><source media="(prefers-color-scheme: light)" srcset="assets/light/stack.svg" /><img src="assets/dark/stack.svg" width="100%" alt="Stack: Data Science (machine learning, estatística, PCA, pandas, scikit-learn), Web (React, WebGL, GSAP, Django) e Pesquisa (Haskell, iniciação científica, LaTeX)." /></picture>
+### Estudante de Ciência de Dados · FATEC Baixada Santista
 
-<br />
+*Transformo dados em decisões e ideias em interfaces.*
 
-<picture><source media="(prefers-color-scheme: dark)" srcset="assets/dark/cmd-projetos.svg" /><source media="(prefers-color-scheme: light)" srcset="assets/light/cmd-projetos.svg" /><img src="assets/dark/cmd-projetos.svg" width="100%" alt="0ph1s@core:~$ git log --author=0ph1s" /></picture>
+<br>
 
-<a href="https://github.com/0ph1s/soccerplayers-v2"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/dark/ch1.svg" /><source media="(prefers-color-scheme: light)" srcset="assets/light/ch1.svg" /><img src="assets/dark/ch1.svg" width="48%" alt="CH1: Academias de formação no futebol" /></picture></a>&emsp;<a href="https://github.com/0ph1s/django_movie_recommendation"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/dark/ch2.svg" /><source media="(prefers-color-scheme: light)" srcset="assets/light/ch2.svg" /><img src="assets/dark/ch2.svg" width="48%" alt="CH2: Ângulo, recomendação de filmes" /></picture></a>
+📍 Brasil &nbsp;·&nbsp; 🎓 Ciência de Dados &nbsp;·&nbsp; 🔭 Explorando IA, análise de dados e desenvolvimento web
 
-<a href="https://github.com/0ph1s/Neural-Network-Approach-to-Binary-Logistic-Classification-of-Potentially-Hazardous-Asteroids"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/dark/ch3.svg" /><source media="(prefers-color-scheme: light)" srcset="assets/light/ch3.svg" /><img src="assets/dark/ch3.svg" width="48%" alt="CH3: Asteroides potencialmente perigosos" /></picture></a>&emsp;<a href="https://github.com/0ph1s/Principal-Component-Analysis-of-the-Solar-System-Planets"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/dark/ch4.svg" /><source media="(prefers-color-scheme: light)" srcset="assets/light/ch4.svg" /><img src="assets/dark/ch4.svg" width="48%" alt="CH4: PCA dos planetas do Sistema Solar" /></picture></a>
+</div>
 
-<a href="https://github.com/0ph1s/avionics-crem"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/dark/ch5.svg" /><source media="(prefers-color-scheme: light)" srcset="assets/light/ch5.svg" /><img src="assets/dark/ch5.svg" width="48%" alt="CH5: Aviônica de UAV em Haskell" /></picture></a>&emsp;<a href="https://github.com/0ph1s/axio"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/dark/ch6.svg" /><source media="(prefers-color-scheme: light)" srcset="assets/light/ch6.svg" /><img src="assets/dark/ch6.svg" width="48%" alt="CH6: Axio" /></picture></a>
+---
 
-<br />
+## 🧠 Sobre mim
 
-<picture><source media="(prefers-color-scheme: dark)" srcset="assets/dark/diag.svg" /><source media="(prefers-color-scheme: light)" srcset="assets/light/diag.svg" /><img src="assets/dark/diag.svg" width="100%" alt="Diagnóstico do perfil: repositórios, estrelas, seguidores, contribuições e linguagens mais usadas." /></picture>
+- 📊 Análise de dados e machine learning com **Python**, **pandas**, **scikit-learn** e **Keras**
+- 🌐 Desenvolvimento web com **JavaScript**, **React** e **Tailwind CSS**
+- 🎨 Interfaces com animação e efeitos visuais (**GSAP**, **WebGL**)
+- ✈️ Pesquisa em sistemas embarcados e aviônica (**Haskell**)
 
-<br />
+## 🛠️ Tecnologias
 
-<picture><source media="(prefers-color-scheme: dark)" srcset="assets/dark/footer.svg" /><source media="(prefers-color-scheme: light)" srcset="assets/light/footer.svg" /><img src="assets/dark/footer.svg" width="100%" alt="exit. Obrigado pela visita." /></picture>
+<div align="center">
 
-<!-- Os SVGs em assets/dark e assets/light são gerados por gen.py (um para cada tema do GitHub).
-     Edite os textos lá e rode `python gen.py`. -->
+![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
+![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
+![Django](https://img.shields.io/badge/Django-092E20?style=for-the-badge&logo=django&logoColor=white)
+![Pandas](https://img.shields.io/badge/Pandas-150458?style=for-the-badge&logo=pandas&logoColor=white)
+![Jupyter](https://img.shields.io/badge/Jupyter-F37626?style=for-the-badge&logo=jupyter&logoColor=white)
+![Haskell](https://img.shields.io/badge/Haskell-5e5086?style=for-the-badge&logo=haskell&logoColor=white)
+![MySQL](https://img.shields.io/badge/MySQL-4479A1?style=for-the-badge&logo=mysql&logoColor=white)
+![Git](https://img.shields.io/badge/Git-F05032?style=for-the-badge&logo=git&logoColor=white)
+
+</div>
+
+## 🚀 Projetos em destaque
+
+| Projeto | Descrição | Stack |
+|---|---|---|
+| [**soccerplayers-v2**](https://github.com/0ph1s/soccerplayers-v2) | Análise comparativa de academias de formação de futebol, com pipeline em Python e dashboard em React | Python · React |
+| [**Axio**](https://github.com/0ph1s/axio) | Landing page com shader ASCII em WebGL, efeitos CRT e animações com GSAP | JavaScript · WebGL · GSAP |
+| [**movie-recommendation-system**](https://github.com/0ph1s/movie-recommendation-system) | Sistema de recomendação de filmes por similaridade de cosseno | Python |
+| [**avionics-crem**](https://github.com/0ph1s/avionics-crem) | FSM de aviônica de UAV com CREM e simulador em Haskell (IC Fatec) | Haskell |
+| [**Principal-Component-Analysis-of-the-Solar-System-Planets**](https://github.com/0ph1s/Principal-Component-Analysis-of-the-Solar-System-Planets) | Redução de dimensionalidade com PCA aplicada aos planetas do Sistema Solar | Python |
+
+## 📈 Estatísticas do GitHub
+
+<div align="center">
+
+<img height="180" alt="Stats" src="https://github-readme-stats.vercel.app/api?username=0ph1s&show_icons=true&theme=tokyonight&hide_border=true" />
+<img height="180" alt="Top languages" src="https://github-readme-stats.vercel.app/api/top-langs/?username=0ph1s&layout=compact&theme=tokyonight&hide_border=true" />
+
+<img alt="Streak" src="https://streak-stats.demolab.com?user=0ph1s&theme=tokyonight&hide_border=true" />
+
+</div>
+
+---
+
+<div align="center">
+
+⭐ *Obrigado por passar por aqui!* ⭐
+
+</div>
