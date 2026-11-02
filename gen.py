@@ -122,21 +122,30 @@ def defs(w, h):
 
 
 def svg(h, body, label, w=W):
-    """Envelope comum: fundo, conteúdo e, no tema axio, scanlines, vinheta e a faixa que rola."""
-    tube = f"""
-  <rect class="roll" style="--h:{h + 120}px" width="{w}" height="120" fill="url(#band)"/>
-  <rect width="{w}" height="{h}" fill="url(#scan)"/>
-  <rect width="{w}" height="{h}" fill="url(#vig)"/>""" if CRT else ""
-    return f"""<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" viewBox="0 0 {w} {h}" role="img" aria-label="{escape(label)}">
+    """Envelope comum. Nos temas do GitHub o fundo é transparente e não há moldura:
+    o conteúdo fica direto sobre a página. No tema axio ganha vidro, borda,
+    scanlines, vinheta e a faixa que rola, com uma margem interna."""
+    head = f'''<svg xmlns="http://www.w3.org/2000/svg" width="{{W_}}" height="{{H_}}" viewBox="0 0 {{W_}} {{H_}}" role="img" aria-label="{escape(label)}">
 <style>{style()}</style>
-{defs(w, h)}
-<g clip-path="url(#tube)">
-  <rect width="{w}" height="{h}" fill="{GLASS}"/>
-  <g class="{'crt' if CRT else ''}">
+'''
+    if not CRT:
+        return head.replace("{W_}", str(w)).replace("{H_}", str(h)) + f"""{defs(w, h)}
 {body}
-  </g>{tube}
+</svg>
+"""
+    px, py = 24, 20
+    w2, h2 = w + 2 * px, h + 2 * py
+    return head.replace("{W_}", str(w2)).replace("{H_}", str(h2)) + f"""{defs(w2, h2)}
+<g clip-path="url(#tube)">
+  <rect width="{w2}" height="{h2}" fill="{GLASS}"/>
+  <g class="crt" transform="translate({px} {py})">
+{body}
+  </g>
+  <rect class="roll" style="--h:{h2 + 120}px" width="{w2}" height="120" fill="url(#band)"/>
+  <rect width="{w2}" height="{h2}" fill="url(#scan)"/>
+  <rect width="{w2}" height="{h2}" fill="url(#vig)"/>
 </g>
-<rect x=".5" y=".5" width="{w - 1}" height="{h - 1}" rx="6" fill="none" stroke="{WIRE}"/>
+<rect x=".5" y=".5" width="{w2 - 1}" height="{h2 - 1}" rx="6" fill="none" stroke="{WIRE}"/>
 </svg>
 """
 
@@ -176,13 +185,12 @@ def caret(x, y, size=14, extra=""):
     return f'<rect class="blink" x="{x}" y="{y - size + 2}" width="{CW * size:.1f}" height="{size + 1}" fill="{AMBER}" {extra}/>'
 
 
-def bar(x, y, w, left, right, active=True):
-    fill = ACTIVE if active else GLASS_2
-    cls = "amb" if active else "dim"
-    return f"""<rect x="{x}" y="{y}" width="{w}" height="26" fill="{fill}"/>
-<line x1="{x}" y1="{y + 26.5}" x2="{x + w}" y2="{y + 26.5}" stroke="{WIRE_2}"/>
-{t(x + 14, y + 17, e(left), cls, 12)}
-{t(x + w - 14, y + 17, e(right), cls, 12, 'text-anchor="end"')}"""
+def label(x, y, s, right="", w=W):
+    """Linha de contexto em cinza: caminho à esquerda, estado à direita."""
+    out = t(x, y, e(s), "dim", 12)
+    if right:
+        out += t(w, y, e(right), "dim", 12, 'text-anchor="end"')
+    return out
 
 
 # ---------------------------------------------------------------------------
@@ -234,33 +242,30 @@ def ansi_logo(word, x, y, cw, ch):
 
 
 # ---------------------------------------------------------------------------
-# Painéis
+# Painéis: sem moldura, tudo alinhado à mesma margem esquerda (x = 0), para
+# que o texto pareça escrito direto na página do GitHub.
 # ---------------------------------------------------------------------------
 
 def header():
-    h = 440
+    h = 368
     p = []
-    p.append(bar(0, 0, W, "0ph1s@core: ~  —  tty1", "online", active=False))
-    p.append(f'<rect class="led" x="{W - 76}" y="10" width="7" height="7" fill="{LIVE}" filter="url(#glow)"/>')
-
     boot = [
-        ("montando /dev/dados", "ok"),
-        ("carregando modelos ........ python · keras · scikit-learn", "ok"),
-        ("compilando interface ...... react · webgl · gsap", "ok"),
-        ("iniciando simulador ....... haskell", "ok"),
+        "montando /dev/dados",
+        "carregando modelos ........ python · keras · scikit-learn",
+        "compilando interface ...... react · webgl · gsap",
+        "iniciando simulador ....... haskell",
     ]
-    for i, (msg, st) in enumerate(boot):
-        y = 58 + i * 19
-        p.append(t(36, y, f'<tspan class="dim">[ </tspan><tspan class="hot">{st}</tspan><tspan class="dim"> ]</tspan> {e(msg)}',
+    for i, msg in enumerate(boot):
+        p.append(t(0, 14 + i * 19, f'<tspan class="dim">[ </tspan><tspan class="usr">ok</tspan><tspan class="dim"> ]</tspan> {e(msg)}',
                    "txt a", 12, delay(0.25 + i * 0.3)))
 
-    p.append(typed(36, 150, "./peterson --init", 1.6))
+    p.append(typed(0, 108, "./peterson --init", 1.6))
 
-    logo, lw = ansi_logo("0PH1S", 36, 174, 12, 22)
+    logo, lw = ansi_logo("0PH1S", 0, 128, 12, 22)
     p.append(f'<g class="on glow" {delay(2.8)}>{logo}</g>')
 
     # bloco estilo neofetch ao lado do logo
-    ix, vx = 540, 622
+    ix, vx = 500, 582
     info = [
         ("nome", "Peterson Carara"),
         ("curso", "Ciência de Dados"),
@@ -269,39 +274,35 @@ def header():
         ("shell", "python · js · haskell"),
         ("foco", "dados · web · baixo nível"),
     ]
-    g = [t(ix, 186, '<tspan class="usr">peterson</tspan><tspan class="dim">@</tspan><tspan class="amb">0ph1s</tspan>', "txt", 14),
-         f'<line x1="{ix}" y1="196" x2="{ix + 250}" y2="196" stroke="{WIRE}" stroke-dasharray="3 3"/>']
+    g = [t(ix, 140, '<tspan class="usr">peterson</tspan><tspan class="dim">@</tspan><tspan class="amb">0ph1s</tspan>', "txt", 14),
+         t(ix, 156, "-" * 14, "dim", 14)]
     for i, (k, v) in enumerate(info):
-        y = 218 + i * 19
+        y = 178 + i * 19
         g.append(t(ix, y, e(k), "dim", 13))
         g.append(t(vx, y, e(v), "hot" if k == "nome" else "txt", 13))
     for i, c in enumerate(SWATCH):
-        g.append(f'<rect x="{ix + i * 26}" y="{218 + 6 * 19 - 4}" width="22" height="12" fill="{c}"/>')
+        g.append(f'<rect x="{ix + i * 26}" y="{178 + 6 * 19 - 6}" width="22" height="12" fill="{c}"/>')
     p.append(f'<g class="a" {delay(3.2)}>{"".join(g)}</g>')
 
-    p.append(t(36, 372, "Transformo dados em decisões e ideias em interfaces.", "hot glow a", 21, delay(3.6)))
-
-    p.append(f'<g class="a" {delay(4.0)}>{prompt(36, 412, "")}{caret(36 + (len(USER) + 4) * CW * 14, 412)}</g>')
+    p.append(t(0, 318, "Transformo dados em decisões e ideias em interfaces.", "hot glow a", 21, delay(3.6)))
+    p.append(f'<g class="a" {delay(4.0)}>{prompt(0, 356, "")}{caret((len(USER) + 4) * CW * 14, 356)}</g>')
     return svg(h, "\n".join(p), "0PH1S — Peterson Carara, estudante de Ciência de Dados na FATEC Baixada Santista. "
                                  "Transformo dados em decisões e ideias em interfaces.")
 
 
 def strip(cmd, right=""):
-    """Faixa de seção: um prompt, como os títulos da Axio."""
-    h = 46
-    p = [prompt(24, 29, cmd), caret(24 + (len(USER) + 4 + len(cmd) + 1) * CW * 14, 29)]
+    """Um prompt sozinho, usado como título de seção."""
+    p = [prompt(0, 16, cmd)]
     if right:
-        p.append(t(W - 24, 29, e(right), "dim", 12, 'text-anchor="end"'))
-    return svg(h, "\n".join(p), f"{USER}:~$ {cmd}")
+        p.append(label(0, 16, "", right))
+    return svg(24, "\n".join(p), f"{USER}:~$ {cmd}")
 
 
-def flags(x, y, items, kw=150):
+def flags(x, y, items, kw=150, lh=22):
     out = []
     for i, (k, v) in enumerate(items):
-        yy = y + i * 24
-        out.append(f'<line x1="{x}" y1="{yy - 16}" x2="{x + 380}" y2="{yy - 16}" stroke="{WIRE_2}" stroke-dasharray="3 3"/>')
-        out.append(t(x, yy, e(k), "amb", 12.5))
-        out.append(t(x + kw, yy, e(v), "dim", 12.5))
+        out.append(t(x, y + i * lh, e(k), "amb", 12.5))
+        out.append(t(x + kw, y + i * lh, e(v), "dim", 12.5))
     return "\n".join(out)
 
 
@@ -310,32 +311,28 @@ def art(x, y, lines, size=13, lh=15.5):
 
 
 def stack():
-    h = 380
-    mw = 470                       # painel principal
-    sx = mw                        # painéis laterais
-    sw = W - mw
-    sh = (h - 28) / 2
-    p = []
+    h = 330
+    rx = 480                       # coluna da direita
+    p = [prompt(0, 16, "tmux attach -t stack"), label(0, 16, "", "3 painéis")]
 
-    # pane 0: data science
-    p.append(bar(0, 0, mw, "~/stack/data-science", "model: ready"))
-    p.append(f'<rect x="0.5" y="0.5" width="{mw - 1}" height="{h - 29}" fill="none" stroke="{AMBER}" stroke-opacity=".9"/>')
+    # data science, à esquerda
+    p.append(label(0, 56, "~/stack/data-science", "model: ready", w=430))
     chart = [
-        "  ▲",
-        "  │                · ╭──",
-        "  │          ·  ·╭──╯·",
-        "  │       ·  ╭──╯  ·",
-        "  │    · ╭──╯·",
-        "  │  ·╭──╯  ·",
-        "  │╭──╯·",
-        "  └─────────────────────▶",
+        "▲",
+        "│                · ╭──",
+        "│          ·  ·╭──╯·",
+        "│       ·  ╭──╯  ·",
+        "│    · ╭──╯·",
+        "│  ·╭──╯  ·",
+        "│╭──╯·",
+        "└─────────────────────▶",
     ]
-    p.append(f'<g class="glow">{art(26, 58, chart)}</g>')
-    p.append(t(240, 92, "Data Science", "hot glow", 26))
-    p.append(t(240, 116, "modelos que encontram", "txt", 12.5))
-    p.append(t(240, 134, "padrões e antecipam", "txt", 12.5))
-    p.append(t(240, 152, "o que vem a seguir.", "txt", 12.5))
-    p.append(flags(26, 222, [
+    p.append(f'<g class="glow">{art(0, 86, chart)}</g>')
+    p.append(t(214, 112, "Data Science", "hot glow", 24))
+    p.append(t(214, 136, "modelos que encontram", "txt", 12.5))
+    p.append(t(214, 154, "padrões e antecipam", "txt", 12.5))
+    p.append(t(214, 172, "o que vem a seguir.", "txt", 12.5))
+    p.append(flags(0, 228, [
         ("--machine-learning", "redes neurais, KerasTuner"),
         ("--estatistica", "Kruskal-Wallis, Mann-Whitney"),
         ("--reducao-dim", "PCA e atributos"),
@@ -343,34 +340,24 @@ def stack():
         ("--notebooks", "Jupyter, visualização"),
     ], kw=170))
 
-    # pane 1: web
-    p.append(f'<line x1="{sx + .5}" y1="0" x2="{sx + .5}" y2="{h - 28}" stroke="{WIRE}"/>')
-    p.append(bar(sx, 0, sw, "~/stack/web", "build: passing", active=False))
-    p.append(t(sx + 26, 62, "Web", "hot", 22))
-    p.append(t(sx + 92, 62, "rápida, imersiva e acessível", "dim", 12))
-    p.append(flags(sx + 26, 96, [
+    # web e pesquisa, à direita
+    p.append(label(rx, 56, "~/stack/web", "build: passing"))
+    p.append(t(rx, 88, "Web", "hot", 22))
+    p.append(t(rx + 66, 88, "rápida, imersiva e acessível", "dim", 12))
+    p.append(flags(rx, 118, [
         ("--react", "vite · tailwind"),
         ("--imersivo", "webgl · shaders · gsap"),
         ("--backend", "django · mysql"),
     ], kw=120))
 
-    # pane 2: pesquisa
-    p.append(f'<line x1="{sx}" y1="{sh + .5}" x2="{W}" y2="{sh + .5}" stroke="{WIRE}"/>')
-    p.append(bar(sx, sh, sw, "~/stack/pesquisa", "sim: running", active=False))
-    p.append(t(sx + 26, sh + 62, "Pesquisa", "hot", 22))
-    p.append(t(sx + 152, sh + 62, "o que há abaixo da abstração", "dim", 12))
-    p.append(flags(sx + 26, sh + 96, [
+    p.append(label(rx, 206, "~/stack/pesquisa", "sim: running"))
+    p.append(t(rx, 238, "Pesquisa", "hot", 22))
+    p.append(t(rx + 126, 238, "o que há abaixo da abstração", "dim", 12))
+    p.append(flags(rx, 268, [
         ("--haskell", "FSM de aviônica de UAV"),
         ("--ic", "iniciação científica, FATEC"),
         ("--latex", "artigos e relatórios"),
     ], kw=120))
-
-    # barra de status do tmux
-    p.append(f'<rect x="0" y="{h - 28}" width="{W}" height="28" fill="{STATUS_BG}"/>')
-    p.append(f'<line x1="0" y1="{h - 28.5}" x2="{W}" y2="{h - 28.5}" stroke="{WIRE}"/>')
-    p.append(t(12, h - 9, '<tspan font-weight="700">[0ph1s]</tspan>   '
-                          '<tspan font-weight="700" class="amb">0:data-science*</tspan>   1:web   2:pesquisa', "status", 12.5))
-    p.append(t(W - 12, h - 9, "ciência de dados · 2026", "status", 12.5, 'text-anchor="end"'))
     return svg(h, "\n".join(p), "Stack: Data Science (machine learning, estatística, PCA, pandas, scikit-learn), "
                                 "Web (React, WebGL, GSAP, Django) e Pesquisa (Haskell, iniciação científica, LaTeX).")
 
@@ -379,24 +366,19 @@ SIGNALS = ["▁▂▃▅▇▅▃▂▁▂▃▅", "▂▄▆█▆▄▂▄▆�
 
 
 def card(i, repo, title, desc, stack, tag):
-    w, h = 440, 196
-    p = []
-    p.append(f'<rect x="0" y="0" width="{w}" height="30" fill="{GLASS_2}"/>')
-    p.append(f'<line x1="0" y1="30.5" x2="{w}" y2="30.5" stroke="{WIRE_2}"/>')
-    p.append(t(16, 20, f"CH{i}", "amb glow", 13, 'font-weight="700"'))
-    p.append(t(58, 20, e(tag), "dim", 12))
-    p.append(f'<rect class="blink" x="{w - 62}" y="14" width="7" height="7" fill="{LIVE}"/>')
-    p.append(t(w - 16, 21, "live", "dim", 12, 'text-anchor="end"'))
-
-    p.append(t(16, 60, e(title), "hot glow", 17))
-    for j, line in enumerate(textwrap.wrap(desc, 56)[:3]):
-        p.append(t(16, 84 + j * 17, e(line), "txt", 12))
-    p.append(f'<line x1="16" y1="138" x2="{w - 16}" y2="138" stroke="{WIRE}" stroke-dasharray="3 3"/>')
-    p.append(t(16, 158, '<tspan class="dim">stack </tspan>' + e(stack), "amb", 12))
-    p.append(t(w - 16, 158, SIGNALS[(i - 1) % len(SIGNALS)], "amb", 12, 'text-anchor="end" opacity=".7"'))
-    p.append(t(16, 182, "&gt; OPEN_REPO ↗", "amb", 12, 'font-weight="700"'))
-    p.append(t(w - 16, 182, e(f"0ph1s/{repo}"[:44]), "dim", 11, 'text-anchor="end"'))
-
+    w, h = 430, 160
+    p = [
+        t(0, 14, f'<tspan class="amb" font-weight="700">CH{i}</tspan>  {e(tag)}', "dim", 12),
+        f'<rect class="blink" x="{w - 38}" y="6" width="7" height="7" fill="{LIVE}"/>',
+        t(w, 14, "live", "dim", 12, 'text-anchor="end"'),
+        t(0, 44, e(title), "hot glow", 17),
+    ]
+    for j, line in enumerate(textwrap.wrap(desc, 58)[:3]):
+        p.append(t(0, 68 + j * 17, e(line), "txt", 12))
+    p.append(t(0, 128, '<tspan class="dim">stack </tspan>' + e(stack), "amb", 12))
+    p.append(t(w, 128, SIGNALS[(i - 1) % len(SIGNALS)], "amb", 12, 'text-anchor="end" opacity=".7"'))
+    p.append(t(0, 150, "&gt; OPEN_REPO ↗", "amb", 12, 'font-weight="700"'))
+    p.append(t(w, 150, e(f"0ph1s/{repo}"[:44]), "dim", 11, 'text-anchor="end"'))
     return svg(h, "\n".join(p), f"{title}: {desc}", w)
 
 
@@ -456,8 +438,9 @@ def github_data(login="0ph1s"):
 
 
 def diag(d):
-    h = 372
-    p = [bar(0, 0, W, "~/diagnostico", f"snapshot {date.today():%d.%m.%Y}")]
+    h = 384
+    lx = 330                       # coluna das linguagens
+    p = [prompt(0, 16, "./diagnostico --github"), label(0, 16, "", f"snapshot {date.today():%d.%m.%Y}")]
 
     # coluna esquerda: leitura do sistema
     rows = [
@@ -468,63 +451,63 @@ def diag(d):
         ("UPTIME", f"desde {d['since']}"),
         ("SYSTEM", "ONLINE"),
     ]
+    p.append(label(0, 56, "~/sistema"))
     for i, (k, v) in enumerate(rows):
-        y = 60 + i * 24
-        p.append(t(26, y, k, "dim", 12.5))
-        p.append(t(300, y, e(v), "hot", 12.5, 'text-anchor="end"'))
-        p.append(f'<line x1="26" y1="{y + 8}" x2="300" y2="{y + 8}" stroke="{WIRE_2}" stroke-dasharray="1 3"/>')
-    p.append(f'<rect class="led" x="{300 - 6 * CW * 12.5 - 16:.1f}" y="{60 + 5 * 24 - 8}" width="7" height="7" fill="{LIVE}" filter="url(#glow)"/>')
+        y = 82 + i * 22
+        p.append(t(0, y, k, "dim", 12.5))
+        p.append(t(270, y, e(v), "hot", 12.5, 'text-anchor="end"'))
+        p.append(f'<line x1="{len(k) * CW * 12.5 + 8:.1f}" y1="{y - 4}" x2="{270 - len(v) * CW * 12.5 - 8:.1f}" y2="{y - 4}" '
+                 f'stroke="{WIRE}" stroke-dasharray="1 4"/>')
+    p.append(f'<rect class="led" x="{270 - 6 * CW * 12.5 - 16:.1f}" y="{82 + 5 * 22 - 8}" width="7" height="7" fill="{LIVE}" filter="url(#glow)"/>')
 
-    # coluna direita: linguagens como barras de caracteres
+    # coluna direita: linguagens como barras de blocos
     top = d["langs"][:6]
     total = sum(v for _, v in d["langs"]) or 1
     cells = 24
-    p.append(t(350, 42 + 18, "linguagens", "amb", 12.5))
+    p.append(label(lx, 56, "~/linguagens"))
     for i, (name, size) in enumerate(top):
-        y = 60 + (i + 1) * 22
+        y = 82 + i * 22
         pct = size / total
         full = round(pct * cells)
-        p.append(t(350, y, e(name.lower().replace(" notebook", "")[:14]), "txt", 12.5))
+        p.append(t(lx, y, e(name.lower().replace(" notebook", "")[:14]), "txt", 12.5))
         # cada célula é um "█" desenhado como retângulo, para não depender da fonte
         for c in range(cells):
             on = c < full
-            p.append(f'<rect x="{480 + c * 13}" y="{y - 11}" width="11" height="13" fill="{AMBER if on else WIRE_2}"'
+            p.append(f'<rect x="{lx + 120 + c * 13}" y="{y - 11}" width="11" height="13" fill="{AMBER if on else WIRE_2}"'
                      f'{" filter=\"url(#glow)\"" if on else ""}/>')
-        p.append(t(W - 26, y, f"{pct * 100:4.1f}%", "dim", 12.5, 'text-anchor="end"'))
+        p.append(t(W, y, f"{pct * 100:4.1f}%", "dim", 12.5, 'text-anchor="end"'))
 
-    # mapa de contribuições: as últimas 53 semanas em quatro níveis de fósforo
-    y0 = 222
-    p.append(t(26, y0 - 10, "atividade · últimas 53 semanas", "amb", 12.5))
+    # mapa de contribuições das últimas 53 semanas
+    y0 = 248
+    p.append(label(0, y0 - 14, "~/atividade · últimas 53 semanas"))
     weeks = d["weeks"][-53:]
     peak = max((c for w in weeks for c in w), default=0) or 1
-    ramp = HEAT
-    step = (W - 52) / 53
+    step = W / 53
     size = step - 3
     for wi, week in enumerate(weeks):
         for di, c in enumerate(week):
             lvl = 0 if c == 0 else min(4, 1 + int(3 * c / peak))
-            x = 26 + wi * step
-            y = y0 + di * (size + 3)
-            p.append(f'<rect x="{x:.1f}" y="{y:.1f}" width="{size:.1f}" height="{size:.1f}" fill="{ramp[lvl]}"/>')
+            p.append(f'<rect x="{wi * step:.1f}" y="{y0 + di * (size + 3):.1f}" width="{size:.1f}" height="{size:.1f}" '
+                     f'rx="2" fill="{HEAT[lvl]}"/>')
     ly = y0 + 7 * (size + 3) + 14
-    p.append(t(26, ly, "menos", "dim", 11))
-    for i, c in enumerate(ramp):
-        p.append(f'<rect x="{70 + i * 16}" y="{ly - 9}" width="11" height="11" fill="{c}"/>')
-    p.append(t(70 + 5 * 16 + 4, ly, "mais", "dim", 11))
+    p.append(t(W - 5 * 16 - 40, ly, "menos", "dim", 11, 'text-anchor="end"'))
+    for i, c in enumerate(HEAT):
+        p.append(f'<rect x="{W - 5 * 16 - 32 + i * 16}" y="{ly - 9}" width="11" height="11" rx="2" fill="{c}"/>')
+    p.append(t(W, ly, "mais", "dim", 11, 'text-anchor="end"'))
     return svg(h, "\n".join(p), f"Diagnóstico: {d['repos']} repositórios públicos, {d['stars']} estrelas, "
                                 f"{d['followers']} seguidores, {d['contrib']} contribuições em 12 meses. "
                                 f"Linguagens: {', '.join(n for n, _ in top)}.")
 
 
 def footer():
-    h = 132
+    h = 104
     p = [
-        prompt(24, 34, "exit"),
-        t(24, 58, "logout", "dim", 13),
-        t(24, 80, "Connection to 0ph1s closed. Obrigado pela visita.", "txt", 13),
-        prompt(24, 112, ""),
-        caret(24 + (len(USER) + 4) * CW * 14, 112),
-        t(W - 24, 112, "~ fim da transmissão ~", "dim", 12, 'text-anchor="end"'),
+        prompt(0, 16, "exit"),
+        t(0, 40, "logout", "dim", 13),
+        t(0, 62, "Connection to 0ph1s closed. Obrigado pela visita.", "txt", 13),
+        prompt(0, 94, ""),
+        caret((len(USER) + 4) * CW * 14, 94),
+        label(0, 94, "", "~ fim da transmissão ~"),
     ]
     return svg(h, "\n".join(p), "exit. Obrigado pela visita.")
 
@@ -534,9 +517,7 @@ def render(data):
         "header.svg": header(),
         "stack.svg": stack(),
         "footer.svg": footer(),
-        "cmd-stack.svg": strip("tmux attach -t stack", "3 painéis"),
         "cmd-projetos.svg": strip("git log --author=0ph1s", "6 canais"),
-        "cmd-diag.svg": strip("./diagnostico --github", "gh api graphql"),
         "diag.svg": diag(data),
     }
     for i, prj in enumerate(PROJECTS, 1):
