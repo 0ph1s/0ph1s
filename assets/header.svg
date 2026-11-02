@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="440" viewBox="0 0 900 440" role="img" aria-label="0PH1S — Peterson Carara, estudante de Ciência de Dados na FATEC Baixada Santista. Transformo dados em decisões e ideias em interfaces.">
+<style>
+text { font-family: 'IBM Plex Mono', 'SFMono-Regular', Consolas, Menlo, 'DejaVu Sans Mono', 'Liberation Mono', monospace; }
+.dim { fill: #A97B4B; } .amb { fill: #FFB547; } .hot { fill: #FFE6B3; }
+.txt { fill: #EBCB98; } .wire { fill: #5A3B1F; } .glass { fill: #120D08; }
+.glow { filter: url(#glow); }
+.crt { animation: flick 6s steps(1) infinite; }
+.blink { animation: blink 1.06s steps(1) infinite; }
+.led { animation: led 2.4s steps(1) infinite; }
+.a { animation: appear .01s linear both; }
+.on { animation: power .5s linear both; }
+.roll { animation: roll 8s linear infinite; }
+@keyframes flick { 0%,100% { opacity: 1 } 47% { opacity: .94 } 48% { opacity: 1 } 83% { opacity: .97 } }
+@keyframes blink { 50% { opacity: 0 } }
+@keyframes led { 0%,100% { opacity: 1 } 92% { opacity: .25 } }
+@keyframes appear { from { opacity: 0 } to { opacity: 1 } }
+@keyframes power { 0% { opacity: 0 } 10% { opacity: 1 } 18% { opacity: .2 } 30% { opacity: 1 } 38% { opacity: .5 } 50%,100% { opacity: 1 } }
+@keyframes roll { from { transform: translateY(-120px) } to { transform: translateY(var(--h)) } }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+</style>
+<defs>
+  <filter id="glow" x="-20%" y="-40%" width="140%" height="180%">
+    <feGaussianBlur stdDeviation="2.2" result="b"/>
+    <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  <pattern id="scan" width="4" height="3" patternUnits="userSpaceOnUse">
+    <rect y="2" width="4" height="1" fill="#000" opacity=".16"/>
+  </pattern>
+  <radialGradient id="vig" cx="50%" cy="50%" r="75%">
+    <stop offset="60%" stop-color="#000" stop-opacity="0"/>
+    <stop offset="100%" stop-color="#000" stop-opacity=".55"/>
+  </radialGradient>
+  <linearGradient id="band" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#FFB547" stop-opacity="0"/>
+    <stop offset=".5" stop-color="#FFB547" stop-opacity=".05"/>
+    <stop offset="1" stop-color="#FFB547" stop-opacity="0"/>
+  </linearGradient>
+  <clipPath id="tube"><rect width="900" height="440" rx="6"/></clipPath>
+</defs>
+<g clip-path="url(#tube)">
+  <rect width="900" height="440" fill="#120D08"/>
+  <g class="crt">
+<rect x="0" y="0" width="900" height="26" fill="#1A130C"/>
+<line x1="0" y1="26.5" x2="900" y2="26.5" stroke="#35230F"/>
+<text x="14" y="17" font-size="12" class="dim" >0ph1s@core: ~  —  tty1</text>
+<text x="886" y="17" font-size="12" class="dim" text-anchor="end">online</text>
+<rect class="led" x="824" y="10" width="7" height="7" fill="#FFB547" filter="url(#glow)"/>
+<text x="36" y="58" font-size="12" class="txt a" style="animation-delay:0.25s"><tspan class="dim">[ </tspan><tspan class="hot">ok</tspan><tspan class="dim"> ]</tspan> montando /dev/dados</text>
+<text x="36" y="77" font-size="12" class="txt a" style="animation-delay:0.55s"><tspan class="dim">[ </tspan><tspan class="hot">ok</tspan><tspan class="dim"> ]</tspan> carregando modelos ........ python · keras · scikit-learn</text>
+<text x="36" y="96" font-size="12" class="txt a" style="animation-delay:0.85s"><tspan class="dim">[ </tspan><tspan class="hot">ok</tspan><tspan class="dim"> ]</tspan> compilando interface ...... react · webgl · gsap</text>
+<text x="36" y="115" font-size="12" class="txt a" style="animation-delay:1.15s"><tspan class="dim">[ </tspan><tspan class="hot">ok</tspan><tspan class="dim"> ]</tspan> iniciando simulador ....... haskell</text>
+<clipPath id="type"><rect x="153.60000000000002" y="136" width="0" height="20">
+  <animate attributeName="width" values="8.4;16.8;25.2;33.6;42.0;50.4;58.8;67.2;75.6;84.0;92.4;100.8;109.2;117.6;126.0;134.4;142.8;182.8" dur="0.99s" begin="1.6s" calcMode="discrete" fill="freeze"/>
+</rect></clipPath>
+<text x="36" y="150" font-size="14" class="txt" ><tspan class="amb">0ph1s@core</tspan><tspan class="dim">:~$ </tspan></text>
+<g clip-path="url(#type)"><text x="153.60000000000002" y="150" font-size="14" class="txt" >./peterson --init</text></g>
+<g class="on glow" style="animation-delay:2.8s"><path d="M120.0 183.0H128.0V196.0M120.0 187.0H124.0V196.0M216.0 183.0H224.0V196.0M216.0 187.0H220.0V196.0M264.0 183.0H272.0V196.0M264.0 187.0H268.0V196.0M324.0 183.0H332.0V196.0M324.0 187.0H328.0V196.0M372.0 183.0H380.0V196.0M372.0 187.0H376.0V196.0M468.0 183.0H476.0V196.0M468.0 187.0H472.0V196.0M72.0 205.0H64.0V218.0M72.0 209.0H68.0V218.0M72.0 205.0H84.0M72.0 209.0H84.0M132.0 205.0H140.0V218.0M132.0 209.0H136.0V218.0M180.0 205.0H172.0V218.0M180.0 209.0H176.0V218.0M180.0 205.0H192.0M180.0 209.0H192.0M192.0 205.0H204.0M192.0 209.0H204.0M228.0 205.0H236.0V218.0M228.0 209.0H232.0V218.0M268.0 196.0V218.0M272.0 196.0V218.0M328.0 196.0V218.0M332.0 196.0V218.0M376.0 196.0V218.0M380.0 196.0V218.0M420.0 205.0H412.0V218.0M420.0 209.0H416.0V218.0M420.0 205.0H432.0M420.0 209.0H432.0M432.0 205.0H444.0M432.0 209.0H444.0M444.0 205.0H456.0M444.0 209.0H456.0M456.0 205.0H468.0M456.0 209.0H468.0M476.0 196.0V209.0H468.0M472.0 196.0V205.0H468.0M64.0 218.0V240.0M68.0 218.0V240.0M108.0 227.0H100.0V240.0M108.0 231.0H104.0V240.0M136.0 218.0V240.0M140.0 218.0V240.0M228.0 227.0H220.0V240.0M228.0 231.0H224.0V240.0M236.0 218.0V231.0H228.0M232.0 218.0V227.0H228.0M328.0 218.0V240.0M332.0 218.0V240.0M340.0 218.0V231.0H348.0M344.0 218.0V227.0H348.0M376.0 218.0V240.0M380.0 218.0V240.0M468.0 227.0H476.0V240.0M468.0 231.0H472.0V240.0M96.0 249.0H88.0V262.0M96.0 253.0H92.0V262.0M104.0 240.0V253.0H96.0M100.0 240.0V249.0H96.0M136.0 240.0V262.0M140.0 240.0V262.0M180.0 249.0H172.0V262.0M180.0 253.0H176.0V262.0M180.0 249.0H192.0M180.0 253.0H192.0M192.0 249.0H204.0M192.0 253.0H204.0M204.0 249.0H216.0M204.0 253.0H216.0M224.0 240.0V253.0H216.0M220.0 240.0V249.0H216.0M276.0 249.0H268.0V262.0M276.0 253.0H272.0V262.0M276.0 249.0H288.0M276.0 253.0H288.0M288.0 249.0H300.0M288.0 253.0H300.0M328.0 240.0V262.0M332.0 240.0V262.0M376.0 240.0V262.0M380.0 240.0V262.0M388.0 240.0V253.0H396.0M392.0 240.0V249.0H396.0M396.0 249.0H408.0M396.0 253.0H408.0M408.0 249.0H420.0M408.0 253.0H420.0M420.0 249.0H432.0M420.0 253.0H432.0M432.0 249.0H444.0M432.0 253.0H444.0M472.0 240.0V262.0M476.0 240.0V262.0M40.0 262.0V275.0H48.0M44.0 262.0V271.0H48.0M132.0 271.0H124.0V284.0M132.0 275.0H128.0V284.0M140.0 262.0V275.0H132.0M136.0 262.0V271.0H132.0M172.0 262.0V284.0M176.0 262.0V284.0M268.0 262.0V284.0M272.0 262.0V284.0M328.0 262.0V284.0M332.0 262.0V284.0M376.0 262.0V284.0M380.0 262.0V284.0M472.0 262.0V284.0M476.0 262.0V284.0M52.0 284.0V297.0H60.0M56.0 284.0V293.0H60.0M60.0 293.0H72.0M60.0 297.0H72.0M72.0 293.0H84.0M72.0 297.0H84.0M84.0 293.0H96.0M84.0 297.0H96.0M96.0 293.0H108.0M96.0 297.0H108.0M108.0 293.0H120.0M108.0 297.0H120.0M128.0 284.0V297.0H120.0M124.0 284.0V293.0H120.0M148.0 284.0V297.0H156.0M152.0 284.0V293.0H156.0M156.0 293.0H168.0M156.0 297.0H168.0M176.0 284.0V297.0H168.0M172.0 284.0V293.0H168.0M244.0 284.0V297.0H252.0M248.0 284.0V293.0H252.0M252.0 293.0H264.0M252.0 297.0H264.0M272.0 284.0V297.0H264.0M268.0 284.0V293.0H264.0M304.0 284.0V297.0H312.0M308.0 284.0V293.0H312.0M312.0 293.0H324.0M312.0 297.0H324.0M332.0 284.0V297.0H324.0M328.0 284.0V293.0H324.0M352.0 284.0V297.0H360.0M356.0 284.0V293.0H360.0M360.0 293.0H372.0M360.0 297.0H372.0M380.0 284.0V297.0H372.0M376.0 284.0V293.0H372.0M388.0 284.0V297.0H396.0M392.0 284.0V293.0H396.0M396.0 293.0H408.0M396.0 297.0H408.0M408.0 293.0H420.0M408.0 297.0H420.0M420.0 293.0H432.0M420.0 297.0H432.0M432.0 293.0H444.0M432.0 297.0H444.0M444.0 293.0H456.0M444.0 297.0H456.0M456.0 293.0H468.0M456.0 297.0H468.0M476.0 284.0V297.0H468.0M472.0 284.0V293.0H468.0" fill="none" stroke="#FFB547" stroke-opacity=".6" stroke-width="1.3"/><path d="M48.0 174.0h72.0v22.0h-72.0zM144.0 174.0h72.0v22.0h-72.0zM240.0 174.0h24.0v22.0h-24.0zM300.0 174.0h24.0v22.0h-24.0zM348.0 174.0h24.0v22.0h-24.0zM384.0 174.0h84.0v22.0h-84.0zM36.0 196.0h24.0v22.0h-24.0zM84.0 196.0h48.0v22.0h-48.0zM144.0 196.0h24.0v22.0h-24.0zM204.0 196.0h24.0v22.0h-24.0zM240.0 196.0h24.0v22.0h-24.0zM300.0 196.0h24.0v22.0h-24.0zM336.0 196.0h36.0v22.0h-36.0zM384.0 196.0h24.0v22.0h-24.0zM36.0 218.0h24.0v22.0h-24.0zM72.0 218.0h24.0v22.0h-24.0zM108.0 218.0h24.0v22.0h-24.0zM144.0 218.0h72.0v22.0h-72.0zM240.0 218.0h84.0v22.0h-84.0zM348.0 218.0h24.0v22.0h-24.0zM384.0 218.0h84.0v22.0h-84.0zM36.0 240.0h48.0v22.0h-48.0zM108.0 240.0h24.0v22.0h-24.0zM144.0 240.0h24.0v22.0h-24.0zM240.0 240.0h24.0v22.0h-24.0zM300.0 240.0h24.0v22.0h-24.0zM348.0 240.0h24.0v22.0h-24.0zM444.0 240.0h24.0v22.0h-24.0zM48.0 262.0h72.0v22.0h-72.0zM144.0 262.0h24.0v22.0h-24.0zM240.0 262.0h24.0v22.0h-24.0zM300.0 262.0h24.0v22.0h-24.0zM348.0 262.0h24.0v22.0h-24.0zM384.0 262.0h84.0v22.0h-84.0z" fill="#FFB547"/></g>
+<g class="a" style="animation-delay:3.2s"><text x="540" y="186" font-size="14" class="txt" ><tspan class="amb">peterson</tspan><tspan class="dim">@</tspan><tspan class="amb">0ph1s</tspan></text><line x1="540" y1="196" x2="790" y2="196" stroke="#5A3B1F" stroke-dasharray="3 3"/><text x="540" y="218" font-size="13" class="dim" >nome</text><text x="622" y="218" font-size="13" class="hot" >Peterson Carara</text><text x="540" y="237" font-size="13" class="dim" >curso</text><text x="622" y="237" font-size="13" class="txt" >Ciência de Dados</text><text x="540" y="256" font-size="13" class="dim" >campus</text><text x="622" y="256" font-size="13" class="txt" >FATEC Baixada Santista</text><text x="540" y="275" font-size="13" class="dim" >local</text><text x="622" y="275" font-size="13" class="txt" >Brasil</text><text x="540" y="294" font-size="13" class="dim" >shell</text><text x="622" y="294" font-size="13" class="txt" >python · js · haskell</text><text x="540" y="313" font-size="13" class="dim" >foco</text><text x="622" y="313" font-size="13" class="txt" >dados · web · baixo nível</text><rect x="540" y="328" width="22" height="12" fill="#1A130C"/><rect x="566" y="328" width="22" height="12" fill="#35230F"/><rect x="592" y="328" width="22" height="12" fill="#5A3B1F"/><rect x="618" y="328" width="22" height="12" fill="#A97B4B"/><rect x="644" y="328" width="22" height="12" fill="#EBCB98"/><rect x="670" y="328" width="22" height="12" fill="#FFB547"/><rect x="696" y="328" width="22" height="12" fill="#FFE6B3"/><rect x="722" y="328" width="22" height="12" fill="#FF5A36"/></g>
+<text x="36" y="372" font-size="21" class="hot glow a" style="animation-delay:3.6s">Transformo dados em decisões e ideias em interfaces.</text>
+<g class="a" style="animation-delay:4.0s"><text x="36" y="412" font-size="14" class="txt" ><tspan class="amb">0ph1s@core</tspan><tspan class="dim">:~$ </tspan><tspan class="txt"></tspan></text><rect class="blink" x="153.60000000000002" y="400" width="8.4" height="15" fill="#FFB547" /></g>
+  </g>
+  <rect class="roll" style="--h:560px" width="900" height="120" fill="url(#band)"/>
+  <rect width="900" height="440" fill="url(#scan)"/>
+  <rect width="900" height="440" fill="url(#vig)"/>
+</g>
+<rect x=".5" y=".5" width="899" height="439" rx="6" fill="none" stroke="#5A3B1F"/>
+</svg>
