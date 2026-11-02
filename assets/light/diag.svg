@@ -572,7 +572,7 @@ text { font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'L
 <rect x="849.1" y="282.0" width="14.0" height="14.0" rx="2" fill="#eff2f5"/>
 <rect x="849.1" y="298.9" width="14.0" height="14.0" rx="2" fill="#aceebb"/>
 <rect x="849.1" y="315.9" width="14.0" height="14.0" rx="2" fill="#aceebb"/>
-<rect x="849.1" y="332.9" width="14.0" height="14.0" rx="2" fill="#4ac26b"/>
+<rect x="849.1" y="332.9" width="14.0" height="14.0" rx="2" fill="#aceebb"/>
 <rect x="849.1" y="349.9" width="14.0" height="14.0" rx="2" fill="#eff2f5"/>
 <rect x="866.0" y="248.0" width="14.0" height="14.0" rx="2" fill="#eff2f5"/>
 <rect x="866.0" y="265.0" width="14.0" height="14.0" rx="2" fill="#eff2f5"/>
