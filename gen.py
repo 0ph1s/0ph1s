@@ -10,6 +10,7 @@ sobre vidro de CRT) continua aqui para quem quiser voltar a ele:
 from datetime import date
 from html import escape
 from pathlib import Path
+from itertools import groupby
 import json
 import subprocess
 import sys
@@ -250,8 +251,75 @@ def ansi_logo(word, x, y, cw, ch):
 # que o texto pareça escrito direto na página do GitHub.
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Animação ASCII: o toro giratório do donut.c, quadro a quadro, em SVG puro.
+# Cada quadro é um <g> que só fica visível na sua fatia do ciclo (CSS step-end),
+# o que funciona dentro de <img> no GitHub, ao contrário de JavaScript.
+# ---------------------------------------------------------------------------
+
+SHADES = ".,-~:;=!*#$@"
+TIER = {c: ("dim" if i < 4 else "txt" if i < 8 else "amb") for i, c in enumerate(SHADES)}
+
+
+def donut_frame(A, B, cols, rows, scale, aspect):
+    import math
+    out = [[" "] * cols for _ in range(rows)]
+    zbuf = [[0.0] * cols for _ in range(rows)]
+    cA, sA, cB, sB = math.cos(A), math.sin(A), math.cos(B), math.sin(B)
+    R1, R2, K2 = 1.0, 2.0, 5.0
+    theta = 0.0
+    while theta < 2 * math.pi:
+        ct, st = math.cos(theta), math.sin(theta)
+        phi = 0.0
+        while phi < 2 * math.pi:
+            cp, sp = math.cos(phi), math.sin(phi)
+            cx, cy = R2 + R1 * ct, R1 * st
+            x = cx * (cB * cp + sA * sB * sp) - cy * cA * sB
+            y = cx * (sB * cp - sA * cB * sp) + cy * cA * cB
+            z = K2 + cA * cx * sp + cy * sA
+            ooz = 1 / z
+            col = int(cols / 2 + scale * ooz * x)
+            row = int(rows / 2 - scale * ooz * y * aspect)
+            L = cp * ct * sB - cA * ct * sp - sA * st + cB * (cA * st - ct * sA * sp)
+            if 0 <= col < cols and 0 <= row < rows and L > 0 and ooz > zbuf[row][col]:
+                zbuf[row][col] = ooz
+                out[row][col] = SHADES[min(11, int(L * 8))]
+            phi += 0.02
+        theta += 0.07
+    return ["".join(r) for r in out]
+
+
+def ascii_donut(x, y, cols=60, rows=24, size=10.5, frames=48, step=0.09):
+    import math
+    cw, lh = CW * size, size
+    aspect = cw / lh                      # um caractere é mais alto que largo
+    scale = cols * 5.0 * 3 / (8 * 3.0)    # o K1 do donut.c, para preencher a largura
+    groups = []
+    for k in range(frames):
+        a = 2 * math.pi * k / frames
+        lines = donut_frame(a, a, cols, rows, scale, aspect)
+        texts = []
+        for r, line in enumerate(lines):
+            if not line.strip():
+                continue
+            start = len(line) - len(line.lstrip())
+            body = []
+            for cls, run in groupby(line[start:].rstrip(), key=TIER.get):
+                run = "".join(run)
+                body.append(f'<tspan class="{cls}">{run}</tspan>' if cls else run)
+            texts.append(f'<text x="{x + start * cw:.1f}" y="{y + (r + 1) * lh:.1f}" font-size="{size}" xml:space="preserve">{"".join(body)}</text>')
+        # o quadro k aparece no intervalo [k, k + 1) do ciclo
+        d = -((frames - k) % frames) * step
+        groups.append(f'<g class="fr{" f0" if k == 0 else ""}" style="animation-delay:{d:.2f}s">{"".join(texts)}</g>')
+    period = frames * step
+    css = (f"<style>.fr {{ opacity: 0; animation: frame {period:.2f}s step-end infinite; }}"
+           f"@keyframes frame {{ 0% {{ opacity: 1 }} {100 / frames:.3f}% {{ opacity: 0 }} 100% {{ opacity: 0 }} }}"
+           f"@media (prefers-reduced-motion: reduce) {{ .f0 {{ opacity: 1; }} }}</style>")
+    return css + "".join(groups)
+
+
 def header():
-    h = 416
+    h = 512
     p = []
     boot = [
         "montando /dev/dados",
@@ -265,11 +333,11 @@ def header():
 
     p.append(typed(0, 108, "./peterson --init", 1.6))
 
-    logo, lw = ansi_logo("AXIO", 0, 128, 15, 26)
-    p.append(f'<g class="on glow" {delay(2.8)}>{logo}</g>')
+    p.append(f'<g class="a" {delay(2.8)}>{ascii_donut(0, 136, cols=60, rows=24, size=10.5)}</g>')
 
-    # bloco estilo neofetch ao lado do logo
-    ix, vx = 500, 582
+    # bloco estilo neofetch ao lado da animação, centrado na altura dela
+    ix, vx = 460, 542
+    top = 194
     info = [
         ("nome", "Peterson Carara"),
         ("curso", "Ciência de Dados"),
@@ -278,19 +346,19 @@ def header():
         ("shell", "python · js · haskell"),
         ("foco", "dados · web · baixo nível"),
     ]
-    g = [t(ix, 140, '<tspan class="usr">peterson</tspan><tspan class="dim">@</tspan><tspan class="amb">0ph1s</tspan>', "txt", 14),
-         t(ix, 156, "-" * 14, "dim", 14)]
+    g = [t(ix, top, '<tspan class="usr">peterson</tspan><tspan class="dim">@</tspan><tspan class="amb">0ph1s</tspan>', "txt", 14),
+         t(ix, top + 16, "-" * 14, "dim", 14)]
     for i, (k, v) in enumerate(info):
-        y = 178 + i * 19
+        y = top + 38 + i * 19
         g.append(t(ix, y, e(k), "dim", 13))
         g.append(t(vx, y, e(v), "hot" if k == "nome" else "txt", 13))
     for i, c in enumerate(SWATCH):
-        g.append(f'<rect x="{ix + i * 26}" y="{178 + 6 * 19 - 6}" width="22" height="12" fill="{c}"/>')
+        g.append(f'<rect x="{ix + i * 26}" y="{top + 38 + 6 * 19 - 6}" width="22" height="12" fill="{c}"/>')
     p.append(f'<g class="a" {delay(3.2)}>{"".join(g)}</g>')
 
-    p.append(t(0, 350, "Transformo dados em decisões e ideias em interfaces.", "hot glow a", 21, delay(3.6)))
-    p.append(f'<g class="a" {delay(4.0)}>{prompt(0, 404, "")}{caret((len(USER) + 4) * CW * 14, 404)}</g>')
-    return svg(h, "\n".join(p), "AXIO — Peterson Carara, estudante de Ciência de Dados na FATEC Baixada Santista. "
+    p.append(t(0, 446, "Transformo dados em decisões e ideias em interfaces.", "hot glow a", 21, delay(3.6)))
+    p.append(f'<g class="a" {delay(4.0)}>{prompt(0, 500, "")}{caret((len(USER) + 4) * CW * 14, 500)}</g>')
+    return svg(h, "\n".join(p), "Toro girando em ASCII. Peterson Carara, estudante de Ciência de Dados na FATEC Baixada Santista. "
                                  "Transformo dados em decisões e ideias em interfaces.")
 
 
