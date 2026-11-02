@@ -2,7 +2,7 @@
 <style>
 text { font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace; }
 .dim { fill: #59636e; } .amb { fill: #0969da; } .hot { fill: #1f2328; } .usr { fill: #1a7f37; }
-.txt { fill: #1f2328; } .wire { fill: #d1d9e0; } .glass { fill: #ffffff; } .status { fill: #59636e; }
+.txt { fill: #1f2328; } .wire { fill: #d1d9e0; } .glass { fill: #ffffff; } .status { fill: #59636e; } .ora { fill: #bc4c00; }
 .glow { filter: url(#glow); }
 .crt { animation: flick 6s steps(1) infinite; }
 .blink { animation: blink 1.06s steps(1) infinite; }

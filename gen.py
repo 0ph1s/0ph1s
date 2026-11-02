@@ -11,6 +11,7 @@ from datetime import date
 from html import escape
 from pathlib import Path
 from itertools import groupby
+import math
 import json
 import subprocess
 import sys
@@ -29,31 +30,31 @@ THEMES = {
         GLASS="#0d1117", GLASS_2="#151b23", AMBER="#4493f8", HOT="#f0f6fc", TEXT="#d1d9e0",
         DIM="#9198a1", WIRE="#3d444d", WIRE_2="#262c36", HAZARD="#f85149",
         USR="#3fb950", LIVE="#3fb950", LOGO="#f0f6fc", LOGO_SHADOW="#9198a1",
-        ACTIVE="rgba(68,147,248,.08)", STATUS_BG="#151b23", STATUS_FG="#9198a1",
+        ORANGE="#f0883e", ACTIVE="rgba(68,147,248,.08)", STATUS_BG="#151b23", STATUS_FG="#9198a1",
         HEAT=["#151b23", "#033a16", "#196c2e", "#2ea043", "#56d364"],
         SWATCH=["#196c2e", "#2ea043", "#56d364", "#4493f8", "#ab7df8", "#db61a2", "#d29922", "#f85149"],
-        FONT=MONO_GH, CRT=False,
+        FONT=MONO_GH, CRT=False, INVERT=False,
     ),
     # Primer, tema claro padrão do GitHub
     "light": dict(
         GLASS="#ffffff", GLASS_2="#f6f8fa", AMBER="#0969da", HOT="#1f2328", TEXT="#1f2328",
         DIM="#59636e", WIRE="#d1d9e0", WIRE_2="#e6eaef", HAZARD="#d1242f",
         USR="#1a7f37", LIVE="#1a7f37", LOGO="#1f2328", LOGO_SHADOW="#818b98",
-        ACTIVE="rgba(9,105,218,.06)", STATUS_BG="#f6f8fa", STATUS_FG="#59636e",
+        ORANGE="#bc4c00", ACTIVE="rgba(9,105,218,.06)", STATUS_BG="#f6f8fa", STATUS_FG="#59636e",
         HEAT=["#eff2f5", "#aceebb", "#4ac26b", "#2da44e", "#116329"],
         SWATCH=["#4ac26b", "#2da44e", "#116329", "#0969da", "#8250df", "#bf3989", "#9a6700", "#d1242f"],
-        FONT=MONO_GH, CRT=False,
+        FONT=MONO_GH, CRT=False, INVERT=True,
     ),
     # fósforo âmbar (P3) sobre vidro de tubo CRT, como na Axio
     "axio": dict(
         GLASS="#120D08", GLASS_2="#1A130C", AMBER="#FFB547", HOT="#FFE6B3", TEXT="#EBCB98",
         DIM="#A97B4B", WIRE="#5A3B1F", WIRE_2="#35230F", HAZARD="#FF5A36",
         USR="#FFB547", LIVE="#FF5A36", LOGO="#FFB547", LOGO_SHADOW="#FFB547",
-        ACTIVE="rgba(255,181,71,.07)", STATUS_BG="#FFB547", STATUS_FG="#120D08",
+        ORANGE="#FF8A3D", ACTIVE="rgba(255,181,71,.07)", STATUS_BG="#FFB547", STATUS_FG="#120D08",
         HEAT=["#35230F", "#5A3B1F", "#A97B4B", "#FFB547", "#FFE6B3"],
         SWATCH=["#1A130C", "#35230F", "#5A3B1F", "#A97B4B", "#EBCB98", "#FFB547", "#FFE6B3", "#FF5A36"],
         FONT="'IBM Plex Mono', 'SFMono-Regular', Consolas, Menlo, 'DejaVu Sans Mono', 'Liberation Mono', monospace",
-        CRT=True,
+        CRT=True, INVERT=False,
     ),
 }
 
@@ -79,7 +80,7 @@ def style():
     return f"""
 text {{ font-family: {FONT}; }}
 .dim {{ fill: {DIM}; }} .amb {{ fill: {AMBER}; }} .hot {{ fill: {HOT}; }} .usr {{ fill: {USR}; }}
-.txt {{ fill: {TEXT}; }} .wire {{ fill: {WIRE}; }} .glass {{ fill: {GLASS}; }} .status {{ fill: {STATUS_FG}; }}
+.txt {{ fill: {TEXT}; }} .wire {{ fill: {WIRE}; }} .glass {{ fill: {GLASS}; }} .status {{ fill: {STATUS_FG}; }} .ora {{ fill: {ORANGE}; }}
 .glow {{ filter: url(#glow); }}
 .crt {{ animation: flick 6s steps(1) infinite; }}
 .blink {{ animation: blink 1.06s steps(1) infinite; }}
@@ -252,7 +253,9 @@ def ansi_logo(word, x, y, cw, ch):
 # ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------
-# Animação ASCII: o toro giratório do donut.c, quadro a quadro, em SVG puro.
+# Animação ASCII: uma capivara 3D girando, quadro a quadro, em SVG puro.
+# A capivara é um punhado de elipsoides; cada caractere lança um raio
+# ortográfico, acha o elipsoide mais próximo e escolhe o caractere pela luz.
 # Cada quadro é um <g> que só fica visível na sua fatia do ciclo (CSS step-end),
 # o que funciona dentro de <img> no GitHub, ao contrário de JavaScript.
 # ---------------------------------------------------------------------------
@@ -260,57 +263,111 @@ def ansi_logo(word, x, y, cw, ch):
 SHADES = ".,-~:;=!*#$@"
 TIER = {c: ("dim" if i < 4 else "txt" if i < 8 else "amb") for i, c in enumerate(SHADES)}
 
-
-def donut_frame(A, B, cols, rows, scale, aspect):
-    import math
-    out = [[" "] * cols for _ in range(rows)]
-    zbuf = [[0.0] * cols for _ in range(rows)]
-    cA, sA, cB, sB = math.cos(A), math.sin(A), math.cos(B), math.sin(B)
-    R1, R2, K2 = 1.0, 2.0, 5.0
-    theta = 0.0
-    while theta < 2 * math.pi:
-        ct, st = math.cos(theta), math.sin(theta)
-        phi = 0.0
-        while phi < 2 * math.pi:
-            cp, sp = math.cos(phi), math.sin(phi)
-            cx, cy = R2 + R1 * ct, R1 * st
-            x = cx * (cB * cp + sA * sB * sp) - cy * cA * sB
-            y = cx * (sB * cp - sA * cB * sp) + cy * cA * cB
-            z = K2 + cA * cx * sp + cy * sA
-            ooz = 1 / z
-            col = int(cols / 2 + scale * ooz * x)
-            row = int(rows / 2 - scale * ooz * y * aspect)
-            L = cp * ct * sB - cA * ct * sp - sA * st + cB * (cA * st - ct * sA * sp)
-            if 0 <= col < cols and 0 <= row < rows and L > 0 and ooz > zbuf[row][col]:
-                zbuf[row][col] = ooz
-                out[row][col] = SHADES[min(11, int(L * 8))]
-            phi += 0.02
-        theta += 0.07
-    return ["".join(r) for r in out]
+# (centro, raios, material); a capivara olha para +x
+CAPYBARA = [
+    ((0.0, 0.0, 0.0), (1.6, 1.0, 0.95), "pelo"),            # corpo
+    ((1.7, 0.45, 0.0), (0.9, 0.65, 0.55), "pelo"),          # cabeça
+    ((2.45, 0.25, 0.0), (0.45, 0.5, 0.46), "pelo"),         # focinho
+    ((1.35, 1.08, 0.32), (0.14, 0.18, 0.1), "pelo"),        # orelhas
+    ((1.35, 1.08, -0.32), (0.14, 0.18, 0.1), "pelo"),
+    ((2.0, 0.72, 0.45), (0.09, 0.09, 0.09), "olho"),        # olhos
+    ((2.0, 0.72, -0.45), (0.09, 0.09, 0.09), "olho"),
+    ((2.86, 0.4, 0.16), (0.06, 0.05, 0.06), "olho"),        # narinas
+    ((2.86, 0.4, -0.16), (0.06, 0.05, 0.06), "olho"),
+    ((0.95, -0.85, 0.5), (0.26, 0.5, 0.24), "pelo"),        # patas
+    ((0.95, -0.85, -0.5), (0.26, 0.5, 0.24), "pelo"),
+    ((-0.95, -0.85, 0.5), (0.3, 0.5, 0.26), "pelo"),
+    ((-0.95, -0.85, -0.5), (0.3, 0.5, 0.26), "pelo"),
+    ((1.55, 1.38, 0.0), (0.34, 0.32, 0.34), "laranja"),    # a laranja na cabeça
+    ((1.6, 1.72, 0.06), (0.14, 0.05, 0.08), "folha"),
+]
+CAPY_CENTER = (0.65, 0.45)             # desloca o modelo para o meio do quadro
+CAPY_LIGHT = (0.25, 0.6, -0.75)       # de cima, um pouco à direita, vindo da câmera
 
 
-def ascii_donut(x, y, cols=60, rows=24, size=10.5, frames=48, step=0.09):
-    import math
+def _unit(v):
+    m = math.sqrt(sum(c * c for c in v))
+    return tuple(c / m for c in v)
+
+
+def capybara_frame(phase, cols, rows, cw, lh, half_width=2.9, tilt=0.32):
+    """Um quadro como linhas de pares (caractere, classe). A capivara balança
+    entre o perfil e a frente, para o rosto (e a laranja) ficarem sempre à vista."""
+    angle = -0.9 + 0.75 * math.sin(phase)
+    sx = 2 * half_width / cols
+    sy = sx * lh / cw                 # um caractere é mais alto que largo
+    ca, sa = math.cos(angle), math.sin(angle)
+    ct, st = math.cos(tilt), math.sin(tilt)
+    light = _unit(CAPY_LIGHT)
+
+    def to_model(p):
+        # desfaz a inclinação da câmera (em x) e depois o giro (em y)
+        x, y, z = p
+        y, z = y * ct - z * st, y * st + z * ct
+        return x * ca + z * sa, y, -x * sa + z * ca
+
+    d = to_model((0.0, 0.0, 1.0))
+    out = []
+    for r in range(rows):
+        line = []
+        for c in range(cols):
+            o = to_model(((c - cols / 2 + 0.5) * sx, -(r - rows / 2 + 0.5) * sy, -10.0))
+            o = (o[0] + CAPY_CENTER[0], o[1] + CAPY_CENTER[1], o[2])
+            best, hit = 1e9, None
+            for (cx, cy, cz), (rx, ry, rz), mat in CAPYBARA:
+                px, py, pz = (o[0] - cx) / rx, (o[1] - cy) / ry, (o[2] - cz) / rz
+                qx, qy, qz = d[0] / rx, d[1] / ry, d[2] / rz
+                A = qx * qx + qy * qy + qz * qz
+                B = 2 * (px * qx + py * qy + pz * qz)
+                C = px * px + py * py + pz * pz - 1
+                disc = B * B - 4 * A * C
+                if disc < 0:
+                    continue
+                tt = (-B - math.sqrt(disc)) / (2 * A)
+                if 0 < tt < best:
+                    best = tt
+                    hit = (_unit(((px + tt * qx) / rx, (py + tt * qy) / ry, (pz + tt * qz) / rz)), mat)
+            if not hit:
+                line.append((" ", None))
+                continue
+            (nx, ny, nz), mat = hit
+            if mat == "olho":
+                line.append(("o", "hot"))
+                continue
+            if mat == "folha":
+                line.append(("v", "usr"))
+                continue
+            # normal de volta para o espaço da câmera
+            nx, nz = nx * ca - nz * sa, nx * sa + nz * ca
+            ny, nz = ny * ct + nz * st, -ny * st + nz * ct
+            lum = 0.18 + 0.78 * max(nx * light[0] + ny * light[1] + nz * light[2], 0.0)
+            i = min(11, int(lum * 12))
+            # no tema claro mais tinta é mais escuro: a rampa se inverte
+            ch = SHADES[11 - i if INVERT else i]
+            line.append((ch, "ora" if mat == "laranja" else TIER[ch]))
+        out.append(line)
+    return out
+
+
+def ascii_anim(x, y, frame_fn, cols=60, rows=24, size=10.5, frames=48, step=0.11):
     cw, lh = CW * size, size
-    aspect = cw / lh                      # um caractere é mais alto que largo
-    scale = cols * 5.0 * 3 / (8 * 3.0)    # o K1 do donut.c, para preencher a largura
     groups = []
     for k in range(frames):
-        a = 2 * math.pi * k / frames
-        lines = donut_frame(a, a, cols, rows, scale, aspect)
+        lines = frame_fn(2 * math.pi * k / frames, cols, rows, cw, lh)
         texts = []
         for r, line in enumerate(lines):
-            if not line.strip():
+            filled = [i for i, (ch, _) in enumerate(line) if ch != " "]
+            if not filled:
                 continue
-            start = len(line) - len(line.lstrip())
+            start, end = filled[0], filled[-1] + 1
             body = []
-            for cls, run in groupby(line[start:].rstrip(), key=TIER.get):
-                run = "".join(run)
+            for cls, run in groupby(line[start:end], key=lambda cc: cc[1]):
+                run = "".join(ch for ch, _ in run)
                 body.append(f'<tspan class="{cls}">{run}</tspan>' if cls else run)
             texts.append(f'<text x="{x + start * cw:.1f}" y="{y + (r + 1) * lh:.1f}" font-size="{size}" xml:space="preserve">{"".join(body)}</text>')
         # o quadro k aparece no intervalo [k, k + 1) do ciclo
-        d = -((frames - k) % frames) * step
-        groups.append(f'<g class="fr{" f0" if k == 0 else ""}" style="animation-delay:{d:.2f}s">{"".join(texts)}</g>')
+        dl = -((frames - k) % frames) * step
+        groups.append(f'<g class="fr{" f0" if k == 0 else ""}" style="animation-delay:{dl:.2f}s">{"".join(texts)}</g>')
     period = frames * step
     css = (f"<style>.fr {{ opacity: 0; animation: frame {period:.2f}s step-end infinite; }}"
            f"@keyframes frame {{ 0% {{ opacity: 1 }} {100 / frames:.3f}% {{ opacity: 0 }} 100% {{ opacity: 0 }} }}"
@@ -333,7 +390,7 @@ def header():
 
     p.append(typed(0, 108, "./peterson --init", 1.6))
 
-    p.append(f'<g class="a" {delay(2.8)}>{ascii_donut(0, 136, cols=60, rows=24, size=10.5)}</g>')
+    p.append(f'<g class="a" {delay(2.8)}>{ascii_anim(0, 128, capybara_frame, rows=26)}</g>')
 
     # bloco estilo neofetch ao lado da animação, centrado na altura dela
     ix, vx = 460, 542
@@ -358,7 +415,7 @@ def header():
 
     p.append(t(0, 446, "Transformo dados em decisões e ideias em interfaces.", "hot glow a", 21, delay(3.6)))
     p.append(f'<g class="a" {delay(4.0)}>{prompt(0, 500, "")}{caret((len(USER) + 4) * CW * 14, 500)}</g>')
-    return svg(h, "\n".join(p), "Toro girando em ASCII. Peterson Carara, estudante de Ciência de Dados na FATEC Baixada Santista. "
+    return svg(h, "\n".join(p), "Capivara girando em ASCII. Peterson Carara, estudante de Ciência de Dados na FATEC Baixada Santista. "
                                  "Transformo dados em decisões e ideias em interfaces.")
 
 
