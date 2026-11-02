@@ -247,7 +247,7 @@ def ansi_logo(word, x, y, cw, ch):
 # ---------------------------------------------------------------------------
 
 def header():
-    h = 368
+    h = 416
     p = []
     boot = [
         "montando /dev/dados",
@@ -284,8 +284,8 @@ def header():
         g.append(f'<rect x="{ix + i * 26}" y="{178 + 6 * 19 - 6}" width="22" height="12" fill="{c}"/>')
     p.append(f'<g class="a" {delay(3.2)}>{"".join(g)}</g>')
 
-    p.append(t(0, 318, "Transformo dados em decisões e ideias em interfaces.", "hot glow a", 21, delay(3.6)))
-    p.append(f'<g class="a" {delay(4.0)}>{prompt(0, 356, "")}{caret((len(USER) + 4) * CW * 14, 356)}</g>')
+    p.append(t(0, 350, "Transformo dados em decisões e ideias em interfaces.", "hot glow a", 21, delay(3.6)))
+    p.append(f'<g class="a" {delay(4.0)}>{prompt(0, 404, "")}{caret((len(USER) + 4) * CW * 14, 404)}</g>')
     return svg(h, "\n".join(p), "0PH1S — Peterson Carara, estudante de Ciência de Dados na FATEC Baixada Santista. "
                                  "Transformo dados em decisões e ideias em interfaces.")
 
