@@ -11,7 +11,6 @@ from datetime import date
 from html import escape
 from pathlib import Path
 from itertools import groupby
-import math
 import json
 import subprocess
 import sys
@@ -253,133 +252,12 @@ def ansi_logo(word, x, y, cw, ch):
 # ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------
-# Animação ASCII: uma capivara 3D girando, quadro a quadro, em SVG puro.
-# A capivara é um punhado de elipsoides; cada caractere lança um raio
-# ortográfico, acha o elipsoide mais próximo e escolhe o caractere pela luz.
-# Cada quadro é um <g> que só fica visível na sua fatia do ciclo (CSS step-end),
-# o que funciona dentro de <img> no GitHub, ao contrário de JavaScript.
-# ---------------------------------------------------------------------------
-
-SHADES = ".,-~:;=!*#$@"
-TIER = {c: ("dim" if i < 4 else "txt" if i < 8 else "amb") for i, c in enumerate(SHADES)}
-
-# (centro, raios, material); a capivara olha para +x
-CAPYBARA = [
-    ((0.0, 0.0, 0.0), (1.6, 1.0, 0.95), "pelo"),            # corpo
-    ((1.7, 0.45, 0.0), (0.9, 0.65, 0.55), "pelo"),          # cabeça
-    ((2.45, 0.25, 0.0), (0.45, 0.5, 0.46), "pelo"),         # focinho
-    ((1.35, 1.08, 0.32), (0.14, 0.18, 0.1), "pelo"),        # orelhas
-    ((1.35, 1.08, -0.32), (0.14, 0.18, 0.1), "pelo"),
-    ((2.0, 0.72, 0.45), (0.09, 0.09, 0.09), "olho"),        # olhos
-    ((2.0, 0.72, -0.45), (0.09, 0.09, 0.09), "olho"),
-    ((2.86, 0.4, 0.16), (0.06, 0.05, 0.06), "olho"),        # narinas
-    ((2.86, 0.4, -0.16), (0.06, 0.05, 0.06), "olho"),
-    ((0.95, -0.85, 0.5), (0.26, 0.5, 0.24), "pelo"),        # patas
-    ((0.95, -0.85, -0.5), (0.26, 0.5, 0.24), "pelo"),
-    ((-0.95, -0.85, 0.5), (0.3, 0.5, 0.26), "pelo"),
-    ((-0.95, -0.85, -0.5), (0.3, 0.5, 0.26), "pelo"),
-    ((1.55, 1.38, 0.0), (0.34, 0.32, 0.34), "laranja"),    # a laranja na cabeça
-    ((1.6, 1.72, 0.06), (0.14, 0.05, 0.08), "folha"),
-]
-CAPY_CENTER = (0.65, 0.45)             # desloca o modelo para o meio do quadro
-CAPY_LIGHT = (0.25, 0.6, -0.75)       # de cima, um pouco à direita, vindo da câmera
-
-
-def _unit(v):
-    m = math.sqrt(sum(c * c for c in v))
-    return tuple(c / m for c in v)
-
-
-def capybara_frame(phase, cols, rows, cw, lh, half_width=2.9, tilt=0.32):
-    """Um quadro como linhas de pares (caractere, classe). A capivara balança
-    entre o perfil e a frente, para o rosto (e a laranja) ficarem sempre à vista."""
-    angle = -0.9 + 0.75 * math.sin(phase)
-    sx = 2 * half_width / cols
-    sy = sx * lh / cw                 # um caractere é mais alto que largo
-    ca, sa = math.cos(angle), math.sin(angle)
-    ct, st = math.cos(tilt), math.sin(tilt)
-    light = _unit(CAPY_LIGHT)
-
-    def to_model(p):
-        # desfaz a inclinação da câmera (em x) e depois o giro (em y)
-        x, y, z = p
-        y, z = y * ct - z * st, y * st + z * ct
-        return x * ca + z * sa, y, -x * sa + z * ca
-
-    d = to_model((0.0, 0.0, 1.0))
-    out = []
-    for r in range(rows):
-        line = []
-        for c in range(cols):
-            o = to_model(((c - cols / 2 + 0.5) * sx, -(r - rows / 2 + 0.5) * sy, -10.0))
-            o = (o[0] + CAPY_CENTER[0], o[1] + CAPY_CENTER[1], o[2])
-            best, hit = 1e9, None
-            for (cx, cy, cz), (rx, ry, rz), mat in CAPYBARA:
-                px, py, pz = (o[0] - cx) / rx, (o[1] - cy) / ry, (o[2] - cz) / rz
-                qx, qy, qz = d[0] / rx, d[1] / ry, d[2] / rz
-                A = qx * qx + qy * qy + qz * qz
-                B = 2 * (px * qx + py * qy + pz * qz)
-                C = px * px + py * py + pz * pz - 1
-                disc = B * B - 4 * A * C
-                if disc < 0:
-                    continue
-                tt = (-B - math.sqrt(disc)) / (2 * A)
-                if 0 < tt < best:
-                    best = tt
-                    hit = (_unit(((px + tt * qx) / rx, (py + tt * qy) / ry, (pz + tt * qz) / rz)), mat)
-            if not hit:
-                line.append((" ", None))
-                continue
-            (nx, ny, nz), mat = hit
-            if mat == "olho":
-                line.append(("o", "hot"))
-                continue
-            if mat == "folha":
-                line.append(("v", "usr"))
-                continue
-            # normal de volta para o espaço da câmera
-            nx, nz = nx * ca - nz * sa, nx * sa + nz * ca
-            ny, nz = ny * ct + nz * st, -ny * st + nz * ct
-            lum = 0.18 + 0.78 * max(nx * light[0] + ny * light[1] + nz * light[2], 0.0)
-            i = min(11, int(lum * 12))
-            # no tema claro mais tinta é mais escuro: a rampa se inverte
-            ch = SHADES[11 - i if INVERT else i]
-            line.append((ch, "ora" if mat == "laranja" else TIER[ch]))
-        out.append(line)
-    return out
-
-
-def ascii_anim(x, y, frame_fn, cols=60, rows=24, size=10.5, frames=48, step=0.11):
-    cw, lh = CW * size, size
-    groups = []
-    for k in range(frames):
-        lines = frame_fn(2 * math.pi * k / frames, cols, rows, cw, lh)
-        texts = []
-        for r, line in enumerate(lines):
-            filled = [i for i, (ch, _) in enumerate(line) if ch != " "]
-            if not filled:
-                continue
-            start, end = filled[0], filled[-1] + 1
-            body = []
-            for cls, run in groupby(line[start:end], key=lambda cc: cc[1]):
-                run = "".join(ch for ch, _ in run)
-                body.append(f'<tspan class="{cls}">{run}</tspan>' if cls else run)
-            texts.append(f'<text x="{x + start * cw:.1f}" y="{y + (r + 1) * lh:.1f}" font-size="{size}" xml:space="preserve">{"".join(body)}</text>')
-        # o quadro k aparece no intervalo [k, k + 1) do ciclo
-        dl = -((frames - k) % frames) * step
-        groups.append(f'<g class="fr{" f0" if k == 0 else ""}" style="animation-delay:{dl:.2f}s">{"".join(texts)}</g>')
-    period = frames * step
-    css = (f"<style>.fr {{ opacity: 0; animation: frame {period:.2f}s step-end infinite; }}"
-           f"@keyframes frame {{ 0% {{ opacity: 1 }} {100 / frames:.3f}% {{ opacity: 0 }} 100% {{ opacity: 0 }} }}"
-           f"@media (prefers-reduced-motion: reduce) {{ .f0 {{ opacity: 1; }} }}</style>")
-    return css + "".join(groups)
-
-
-# ---------------------------------------------------------------------------
-# Retrato em ASCII colorido a partir de uma imagem: PNG transparente ou fundo branco.
+# Imagem em ASCII colorido: PNG transparente, JPG de fundo branco ou GIF animado.
 # Cada célula vira um caractere escolhido pela luminância e pintado com a cor
 # média daquele pedaço da imagem (reduzida a poucas cores, para o SVG não
-# virar uma tspan por letra). As linhas aparecem uma a uma, como um render.
+# virar uma tspan por letra). Uma imagem parada aparece linha a linha, como um
+# render; um GIF vira um quadro por <g>, alternados por CSS (step-end), o que
+# funciona dentro de <img> no GitHub, ao contrário de JavaScript.
 # ---------------------------------------------------------------------------
 
 ART = Path(__file__).parent / "art"
@@ -394,23 +272,32 @@ def _hex_rgb(h):
     return tuple(int(h[i:i + 2], 16) for i in (1, 3, 5))
 
 
-def ascii_image(path, x, y, cols=100, size=5.5, colors=32, start=2.8):
-    from PIL import Image                      # só esta parte precisa do Pillow
-    im = Image.open(path)
-    if "A" not in im.getbands():
-        # sem transparência (um JPG, por exemplo): o fundo branco vira transparente
-        im = im.convert("RGBA")
-        im.putalpha(im.convert("L").point(lambda v: 255 if v < 232 else 0))
-    im = im.convert("RGBA")
-    im = im.crop(im.getchannel("A").getbbox())
-    cw, lh = CW * size, size
-    rows = round(cols * im.height / im.width * cw / lh)
+def _load_frames(path):
+    """Quadros RGBA recortados na mesma caixa, com a duração de cada um em ms."""
+    from PIL import Image, ImageSequence      # só esta parte precisa do Pillow
+    frames = []
+    for f in ImageSequence.Iterator(Image.open(path)):
+        dur = f.info.get("duration") or 100
+        if "A" in f.getbands() or "transparency" in f.info:
+            f = f.convert("RGBA")
+        else:
+            # sem transparência (um JPG, por exemplo): o fundo branco vira transparente
+            f = f.convert("RGBA")
+            f.putalpha(f.convert("L").point(lambda v: 255 if v < 232 else 0))
+        frames.append((f, dur))
+    # a mesma caixa para todos os quadros, senão o desenho pula entre eles
+    boxes = [f.getchannel("A").getbbox() for f, _ in frames]
+    box = (min(b[0] for b in boxes), min(b[1] for b in boxes), max(b[2] for b in boxes), max(b[3] for b in boxes))
+    return [(f.crop(box), d) for f, d in frames]
+
+
+def _cells(im, cols, rows, colors):
+    from PIL import Image
     # média com alfa pré-multiplicado, para a cor dos pixels transparentes não vazar
     small = im.convert("RGBa").resize((cols, rows), Image.BOX).convert("RGBA")
     alpha = small.getchannel("A")
     pal = small.convert("RGB").quantize(colors, method=Image.Quantize.MEDIANCUT)
     lut = pal.getpalette()
-
     out = []
     for r in range(rows):
         cells = []
@@ -423,8 +310,7 @@ def ascii_image(path, x, y, cols=100, size=5.5, colors=32, start=2.8):
             lum = (0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]) / 255
             # caracteres mais densos nas áreas claras, nos dois temas: quem dá o tom é a
             # cor, e a densidade mínima é alta para ela continuar legível
-            ink = lum
-            ch = DENSITY[min(8, int((0.55 + 0.45 * ink) * 9))]
+            ch = DENSITY[min(8, int((0.55 + 0.45 * lum) * 9))]
             # cores que somem no fundo ganham contraste sem perder o tom:
             # contorno preto vira cinza no escuro, branco vira cinza no claro
             if not INVERT:
@@ -437,20 +323,47 @@ def ascii_image(path, x, y, cols=100, size=5.5, colors=32, start=2.8):
                 rgb = _mix(rgb, (0, 0, 0), 0.1 + 0.25 * lum)
             cells.append((ch, "#%02x%02x%02x" % rgb))
         out.append(cells)
+    return out
 
-    texts = []
-    for r, line in enumerate(out):
-        filled = [i for i, (ch, _) in enumerate(line) if ch != " "]
-        if not filled:
-            continue
-        a, b = filled[0], filled[-1] + 1
-        body = []
-        for color, run in groupby(line[a:b], key=lambda cc: cc[1]):
-            run = "".join(ch for ch, _ in run)
-            body.append(f'<tspan fill="{color}">{run}</tspan>' if color else run)
-        texts.append(f'<text class="a" {delay(start + r * 0.025)} x="{x + a * cw:.1f}" y="{y + (r + 1) * lh:.1f}" '
-                     f'font-size="{size}" xml:space="preserve">{"".join(body)}</text>')
-    return "".join(texts), cols * cw, rows * lh
+
+def _row(line, x, y, cw, size, extra=""):
+    filled = [i for i, (ch, _) in enumerate(line) if ch != " "]
+    if not filled:
+        return ""
+    a, b = filled[0], filled[-1] + 1
+    body = []
+    for color, run in groupby(line[a:b], key=lambda cc: cc[1]):
+        run = "".join(ch for ch, _ in run)
+        body.append(f'<tspan fill="{color}">{run}</tspan>' if color else run)
+    return (f'<text {extra} x="{x + a * cw:.1f}" y="{y:.1f}" font-size="{size}" '
+            f'xml:space="preserve">{"".join(body)}</text>')
+
+
+def ascii_image(path, x, y, cols=100, size=5.5, colors=32, start=2.8):
+    frames = _load_frames(path)
+    cw, lh = CW * size, size
+    w, h = frames[0][0].size
+    rows = round(cols * h / w * cw / lh)
+
+    if len(frames) == 1:
+        lines = _cells(frames[0][0], cols, rows, colors)
+        out = "".join(_row(line, x, y + (r + 1) * lh, cw, size, f'class="a" {delay(start + r * 0.025)}')
+                      for r, line in enumerate(lines))
+        return out, cols * cw, rows * lh
+
+    # GIF: o quadro k aparece no intervalo [k, k + 1) do ciclo
+    n = len(frames)
+    step = sum(d for _, d in frames) / n / 1000
+    groups = []
+    for k, (im, _) in enumerate(frames):
+        lines = _cells(im, cols, rows, colors)
+        body = "".join(_row(line, x, y + (r + 1) * lh, cw, size) for r, line in enumerate(lines))
+        dl = -((n - k) % n) * step
+        groups.append(f'<g class="fr{" f0" if k == 0 else ""}" style="animation-delay:{dl:.2f}s">{body}</g>')
+    css = (f"<style>.fr {{ opacity: 0; animation: frame {n * step:.2f}s step-end infinite; }}"
+           f"@keyframes frame {{ 0% {{ opacity: 1 }} {100 / n:.3f}% {{ opacity: 0 }} 100% {{ opacity: 0 }} }}"
+           f"@media (prefers-reduced-motion: reduce) {{ .f0 {{ opacity: 1; }} }}</style>")
+    return f'{css}<g class="a" {delay(start)}>{"".join(groups)}</g>', cols * cw, rows * lh
 
 
 def header():
@@ -467,7 +380,7 @@ def header():
 
     p.append(typed(0, 108, "./peterson --init", 1.6))
 
-    art, aw, ah = ascii_image(ART / "retrato.jpg", 0, 128)
+    art, aw, ah = ascii_image(ART / "retrato.gif", 0, 128, cols=100, size=6.5)
     p.append(art)
 
     # bloco estilo neofetch ao lado do retrato, centrado na altura dele
@@ -495,7 +408,7 @@ def header():
     p.append(t(0, ty, "Transformo dados em decisões e ideias em interfaces.", "hot glow a", 21, delay(3.6)))
     p.append(f'<g class="a" {delay(4.0)}>{prompt(0, ty + 54, "")}{caret((len(USER) + 4) * CW * 14, ty + 54)}</g>')
     h = ty + 66
-    return svg(h, "\n".join(p), "Retrato em ASCII colorido. Peterson Carara, estudante de Ciência de Dados na FATEC Baixada Santista. "
+    return svg(h, "\n".join(p), "Animação em ASCII colorido. Peterson Carara, estudante de Ciência de Dados na FATEC Baixada Santista. "
                                  "Transformo dados em decisões e ideias em interfaces.")
 
 
