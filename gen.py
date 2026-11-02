@@ -203,6 +203,10 @@ GLYPHS = {
     "H": ["██╗  ██╗", "██║  ██║", "███████║", "██╔══██║", "██║  ██║", "╚═╝  ╚═╝"],
     "1": [" ██╗", "███║", "╚██║", " ██║", " ██║", " ╚═╝"],
     "S": ["███████╗", "██╔════╝", "███████╗", "╚════██║", "███████║", "╚══════╝"],
+    "A": [" █████╗ ", "██╔══██╗", "███████║", "██╔══██║", "██║  ██║", "╚═╝  ╚═╝"],
+    "X": ["██╗  ██╗", "╚██╗██╔╝", " ╚███╔╝ ", " ██╔██╗ ", "██╔╝ ██╗", "╚═╝  ╚═╝"],
+    "I": ["██╗", "██║", "██║", "██║", "██║", "╚═╝"],
+    "O": [" ██████╗ ", "██╔═══██╗", "██║   ██║", "██║   ██║", "╚██████╔╝", " ╚═════╝ "],
 }
 
 
@@ -261,7 +265,7 @@ def header():
 
     p.append(typed(0, 108, "./peterson --init", 1.6))
 
-    logo, lw = ansi_logo("0PH1S", 0, 128, 12, 22)
+    logo, lw = ansi_logo("AXIO", 0, 128, 15, 26)
     p.append(f'<g class="on glow" {delay(2.8)}>{logo}</g>')
 
     # bloco estilo neofetch ao lado do logo
@@ -286,7 +290,7 @@ def header():
 
     p.append(t(0, 350, "Transformo dados em decisões e ideias em interfaces.", "hot glow a", 21, delay(3.6)))
     p.append(f'<g class="a" {delay(4.0)}>{prompt(0, 404, "")}{caret((len(USER) + 4) * CW * 14, 404)}</g>')
-    return svg(h, "\n".join(p), "0PH1S — Peterson Carara, estudante de Ciência de Dados na FATEC Baixada Santista. "
+    return svg(h, "\n".join(p), "AXIO — Peterson Carara, estudante de Ciência de Dados na FATEC Baixada Santista. "
                                  "Transformo dados em decisões e ideias em interfaces.")
 
 
