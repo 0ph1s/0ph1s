@@ -10,7 +10,6 @@ sobre vidro de CRT) continua aqui para quem quiser voltar a ele:
 from datetime import date
 from html import escape
 from pathlib import Path
-from itertools import groupby
 import json
 import subprocess
 import sys
@@ -258,147 +257,6 @@ def ansi_logo(word, x, y, cw, ch):
 # virar uma tspan por letra). Uma imagem parada aparece linha a linha, como um
 # render; um GIF vira um quadro por <g>, alternados por CSS (step-end), o que
 # funciona dentro de <img> no GitHub, ao contrário de JavaScript.
-# ---------------------------------------------------------------------------
-
-ART = Path(__file__).parent / "art"
-DENSITY = ".:-=+*#%@"
-
-
-def _mix(c, d, t):
-    return tuple(round(a + (b - a) * t) for a, b in zip(c, d))
-
-
-def _hex_rgb(h):
-    return tuple(int(h[i:i + 2], 16) for i in (1, 3, 5))
-
-
-def _load_frames(path):
-    """Quadros RGBA recortados na mesma caixa, com a duração de cada um em ms."""
-    from PIL import Image, ImageSequence      # só esta parte precisa do Pillow
-    frames = []
-    for f in ImageSequence.Iterator(Image.open(path)):
-        dur = f.info.get("duration") or 100
-        if "A" in f.getbands() or "transparency" in f.info:
-            f = f.convert("RGBA")
-        else:
-            # sem transparência (um JPG, por exemplo): o fundo branco vira transparente
-            f = f.convert("RGBA")
-            f.putalpha(f.convert("L").point(lambda v: 255 if v < 232 else 0))
-        frames.append((f, dur))
-    # a mesma caixa para todos os quadros, senão o desenho pula entre eles
-    boxes = [f.getchannel("A").getbbox() for f, _ in frames]
-    box = (min(b[0] for b in boxes), min(b[1] for b in boxes), max(b[2] for b in boxes), max(b[3] for b in boxes))
-    return [(f.crop(box), d) for f, d in frames]
-
-
-def _cells(im, cols, rows, colors, palette=None):
-    from PIL import Image
-    # média com alfa pré-multiplicado, para a cor dos pixels transparentes não vazar
-    small = im.convert("RGBa").resize((cols, rows), Image.BOX).convert("RGBA")
-    alpha = small.getchannel("A")
-    if palette is None:
-        pal = small.convert("RGB").quantize(colors, method=Image.Quantize.MEDIANCUT)
-    else:
-        pal = small.convert("RGB").quantize(palette=palette, dither=Image.Dither.NONE)
-    lut = pal.getpalette()
-    out = []
-    for r in range(rows):
-        cells = []
-        for c in range(cols):
-            if alpha.getpixel((c, r)) < 110:
-                cells.append((" ", None))
-                continue
-            i = pal.getpixel((c, r))
-            rgb = tuple(lut[3 * i:3 * i + 3])
-            lum = (0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]) / 255
-            # caracteres mais densos nas áreas claras, nos dois temas: quem dá o tom é a
-            # cor, e a densidade mínima é alta para ela continuar legível
-            ch = DENSITY[min(8, int((0.55 + 0.45 * lum) * 9))]
-            # cores que somem no fundo ganham contraste sem perder o tom:
-            # contorno preto vira cinza no escuro, branco vira cinza no claro
-            if not INVERT:
-                if lum < 0.12:
-                    rgb = _mix(rgb, _hex_rgb(DIM), 0.7)
-                elif lum < 0.4:
-                    rgb = _mix(rgb, (255, 255, 255), (0.4 - lum) * 0.8)
-            else:
-                # no branco, cores claras somem: escurece tudo, mais o que é mais claro
-                rgb = _mix(rgb, (0, 0, 0), 0.1 + 0.25 * lum)
-            cells.append((ch, "#%02x%02x%02x" % rgb))
-        out.append(cells)
-    return out
-
-
-def _shared_palette(frames, cols, rows, colors, _cache={}):
-    """Uma paleta só para todos os quadros: as cores não piscam entre eles e
-    sobram menos trocas de cor por linha."""
-    from PIL import Image
-    key = (id(frames), cols, rows, colors)
-    if key not in _cache:
-        # só os pixels visíveis entram na paleta, senão o fundo rouba as cores
-        pixels = []
-        for im, _ in frames:
-            small = im.convert("RGBa").resize((cols, rows), Image.BOX).convert("RGBA")
-            raw = small.tobytes()
-            pixels += [tuple(raw[i:i + 3]) for i in range(0, len(raw), 4) if raw[i + 3] >= 110]
-        sheet = Image.new("RGB", (len(pixels), 1))
-        sheet.putdata(pixels)
-        _cache[key] = sheet.quantize(colors, method=Image.Quantize.MEDIANCUT)
-    return _cache[key]
-
-
-def _row(line, x, y, cw, size, extra="", names=None):
-    filled = [i for i, (ch, _) in enumerate(line) if ch != " "]
-    if not filled:
-        return ""
-    a, b = filled[0], filled[-1] + 1
-    body = []
-    for color, run in groupby(line[a:b], key=lambda cc: cc[1]):
-        run = "".join(ch for ch, _ in run)
-        if not color:
-            body.append(run)
-        elif names:
-            body.append(f'<tspan class="{names[color]}">{run}</tspan>')
-        else:
-            body.append(f'<tspan fill="{color}">{run}</tspan>')
-    return (f'<text {extra} x="{x + a * cw:.1f}" y="{y:.1f}" font-size="{size}" '
-            f'xml:space="preserve">{"".join(body)}</text>')
-
-
-def ascii_image(path, x, y, cols=100, size=5.5, colors=32, start=2.8, every=1):
-    frames = _load_frames(path)
-    if every > 1:
-        # GIFs longos pesam: usa um quadro a cada `every`, cada um durando mais
-        frames = [(f, d * every) for f, d in frames[::every]]
-    cw, lh = CW * size, size
-    w, h = frames[0][0].size
-    rows = round(cols * h / w * cw / lh)
-
-    if len(frames) == 1:
-        lines = _cells(frames[0][0], cols, rows, colors)
-        out = "".join(_row(line, x, y + (r + 1) * lh, cw, size, f'class="a" {delay(start + r * 0.025)}')
-                      for r, line in enumerate(lines))
-        return out, cols * cw, rows * lh
-
-    # GIF: o quadro k aparece no intervalo [k, k + 1) do ciclo. As cores viram
-    # classes curtas compartilhadas entre os quadros, o que encolhe muito o SVG.
-    n = len(frames)
-    step = sum(d for _, d in frames) / n / 1000
-    grids = [_cells(im, cols, rows, colors, _shared_palette(frames, cols, rows, colors)) for im, _ in frames]
-    used = sorted({c for g in grids for line in g for _, c in line if c})
-    names = {c: f"k{i}" for i, c in enumerate(used)}
-    palette = "".join(f".{names[c]}{{fill:{c}}}" for c in used)
-    groups = []
-    for k, lines in enumerate(grids):
-        body = "".join(_row(line, x, y + (r + 1) * lh, cw, size, names=names) for r, line in enumerate(lines))
-        dl = -((n - k) % n) * step
-        groups.append(f'<g class="fr{" f0" if k == 0 else ""}" style="animation-delay:{dl:.2f}s">{body}</g>')
-    css = (f"<style>{palette}.fr {{ opacity: 0; animation: frame {n * step:.2f}s step-end infinite; }}"
-           f"@keyframes frame {{ 0% {{ opacity: 1 }} {100 / n:.3f}% {{ opacity: 0 }} 100% {{ opacity: 0 }} }}"
-           f"@media (prefers-reduced-motion: reduce) {{ .f0 {{ opacity: 1; }} }}</style>")
-    return f'{css}<g class="a" {delay(start)}>{"".join(groups)}</g>', cols * cw, rows * lh
-
-
 def header():
     p = []
     boot = [
@@ -413,11 +271,12 @@ def header():
 
     p.append(typed(0, 108, "./peterson --init", 1.6))
 
-    art, aw, ah = ascii_image(ART / "retrato.gif", 0, 128, cols=72, size=7, every=3, colors=10)
-    p.append(art)
+    logo, lw = ansi_logo("0PH1S", 0, 128, 12, 22)
+    ah = 6 * 22
+    p.append(f'<g class="on glow" {delay(2.8)}>{logo}</g>')
 
-    # bloco estilo neofetch ao lado do retrato, centrado na altura dele
-    ix, vx = round(aw) + 80, round(aw) + 162
+    # bloco estilo neofetch ao lado do logo, centrado na altura dele
+    ix, vx = round(lw) + 80, round(lw) + 162
     top = round(128 + ah / 2 - 66)
     info = [
         ("nome", "Peterson Carara"),
@@ -441,7 +300,7 @@ def header():
     p.append(t(0, ty, "Transformo dados em decisões e ideias em interfaces.", "hot glow a", 21, delay(3.6)))
     p.append(f'<g class="a" {delay(4.0)}>{prompt(0, ty + 54, "")}{caret((len(USER) + 4) * CW * 14, ty + 54)}</g>')
     h = ty + 66
-    return svg(h, "\n".join(p), "Animação em ASCII colorido. Peterson Carara, estudante de Ciência de Dados na FATEC Baixada Santista. "
+    return svg(h, "\n".join(p), "0PH1S em ASCII. Peterson Carara, estudante de Ciência de Dados na FATEC Baixada Santista. "
                                  "Transformo dados em decisões e ideias em interfaces.")
 
 
