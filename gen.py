@@ -296,7 +296,7 @@ def header():
         g.append(f'<rect x="{ix + i * 26}" y="{top + 38 + 6 * 19 - 6}" width="22" height="12" fill="{c}"/>')
     p.append(f'<g class="a" {delay(3.2)}>{"".join(g)}</g>')
 
-    ty = round(128 + ah + 81)
+    ty = round(128 + ah + 68)
     p.append(t(0, ty, "Transformo dados em decisões e ideias em interfaces.", "hot glow a", 21, delay(3.6)))
     p.append(f'<g class="a" {delay(4.0)}>{prompt(0, ty + 54, "")}{caret((len(USER) + 4) * CW * 14, ty + 54)}</g>')
     h = ty + 66
