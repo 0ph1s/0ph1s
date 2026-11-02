@@ -376,7 +376,7 @@ def ascii_anim(x, y, frame_fn, cols=60, rows=24, size=10.5, frames=48, step=0.11
 
 
 # ---------------------------------------------------------------------------
-# Retrato em ASCII colorido a partir de um PNG com transparência.
+# Retrato em ASCII colorido a partir de uma imagem: PNG transparente ou fundo branco.
 # Cada célula vira um caractere escolhido pela luminância e pintado com a cor
 # média daquele pedaço da imagem (reduzida a poucas cores, para o SVG não
 # virar uma tspan por letra). As linhas aparecem uma a uma, como um render.
@@ -394,9 +394,14 @@ def _hex_rgb(h):
     return tuple(int(h[i:i + 2], 16) for i in (1, 3, 5))
 
 
-def ascii_image(path, x, y, cols=76, size=6.5, colors=32, start=2.8):
+def ascii_image(path, x, y, cols=100, size=5.5, colors=32, start=2.8):
     from PIL import Image                      # só esta parte precisa do Pillow
-    im = Image.open(path).convert("RGBA")
+    im = Image.open(path)
+    if "A" not in im.getbands():
+        # sem transparência (um JPG, por exemplo): o fundo branco vira transparente
+        im = im.convert("RGBA")
+        im.putalpha(im.convert("L").point(lambda v: 255 if v < 232 else 0))
+    im = im.convert("RGBA")
     im = im.crop(im.getchannel("A").getbbox())
     cw, lh = CW * size, size
     rows = round(cols * im.height / im.width * cw / lh)
@@ -462,7 +467,7 @@ def header():
 
     p.append(typed(0, 108, "./peterson --init", 1.6))
 
-    art, aw, ah = ascii_image(ART / "retrato.png", 0, 128)
+    art, aw, ah = ascii_image(ART / "retrato.jpg", 0, 128)
     p.append(art)
 
     # bloco estilo neofetch ao lado do retrato, centrado na altura dele
