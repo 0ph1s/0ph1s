@@ -1,7 +1,10 @@
 """
 0ph1s // gen.py
-Gera os SVGs do perfil no mesmo visual da Axio: fósforo âmbar (P3) sobre vidro
-de tubo CRT. Rode `python gen.py` e os arquivos saem em ./assets.
+Gera os SVGs do perfil em estilo terminal/ASCII. Cada painel sai duas vezes,
+com as cores do tema claro e do escuro do GitHub, em ./assets/light e
+./assets/dark; o README escolhe entre eles com <picture>. O tema "axio" (âmbar
+sobre vidro de CRT) continua aqui para quem quiser voltar a ele:
+`python gen.py axio`.
 """
 
 from datetime import date
@@ -9,20 +12,57 @@ from html import escape
 from pathlib import Path
 import json
 import subprocess
+import sys
 import textwrap
 
 OUT = Path(__file__).parent / "assets"
 
-# cor (mesmos tokens do style.css da Axio)
-GLASS = "#120D08"
-GLASS_2 = "#1A130C"
-AMBER = "#FFB547"
-HOT = "#FFE6B3"
-TEXT = "#EBCB98"
-DIM = "#A97B4B"
-WIRE = "#5A3B1F"
-WIRE_2 = "#35230F"
-HAZARD = "#FF5A36"
+# Os nomes vêm do style.css da Axio e valem para todos os temas:
+# GLASS fundo, GLASS_2 superfícies, AMBER destaque, HOT ênfase, TEXT texto,
+# DIM secundário, WIRE bordas, WIRE_2 divisórias, HAZARD erro.
+MONO_GH = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace"
+
+THEMES = {
+    # Primer, tema escuro padrão do GitHub
+    "dark": dict(
+        GLASS="#0d1117", GLASS_2="#151b23", AMBER="#4493f8", HOT="#f0f6fc", TEXT="#d1d9e0",
+        DIM="#9198a1", WIRE="#3d444d", WIRE_2="#262c36", HAZARD="#f85149",
+        USR="#3fb950", LIVE="#3fb950", LOGO="#f0f6fc", LOGO_SHADOW="#9198a1",
+        ACTIVE="rgba(68,147,248,.08)", STATUS_BG="#151b23", STATUS_FG="#9198a1",
+        HEAT=["#151b23", "#033a16", "#196c2e", "#2ea043", "#56d364"],
+        SWATCH=["#196c2e", "#2ea043", "#56d364", "#4493f8", "#ab7df8", "#db61a2", "#d29922", "#f85149"],
+        FONT=MONO_GH, CRT=False,
+    ),
+    # Primer, tema claro padrão do GitHub
+    "light": dict(
+        GLASS="#ffffff", GLASS_2="#f6f8fa", AMBER="#0969da", HOT="#1f2328", TEXT="#1f2328",
+        DIM="#59636e", WIRE="#d1d9e0", WIRE_2="#e6eaef", HAZARD="#d1242f",
+        USR="#1a7f37", LIVE="#1a7f37", LOGO="#1f2328", LOGO_SHADOW="#818b98",
+        ACTIVE="rgba(9,105,218,.06)", STATUS_BG="#f6f8fa", STATUS_FG="#59636e",
+        HEAT=["#eff2f5", "#aceebb", "#4ac26b", "#2da44e", "#116329"],
+        SWATCH=["#4ac26b", "#2da44e", "#116329", "#0969da", "#8250df", "#bf3989", "#9a6700", "#d1242f"],
+        FONT=MONO_GH, CRT=False,
+    ),
+    # fósforo âmbar (P3) sobre vidro de tubo CRT, como na Axio
+    "axio": dict(
+        GLASS="#120D08", GLASS_2="#1A130C", AMBER="#FFB547", HOT="#FFE6B3", TEXT="#EBCB98",
+        DIM="#A97B4B", WIRE="#5A3B1F", WIRE_2="#35230F", HAZARD="#FF5A36",
+        USR="#FFB547", LIVE="#FF5A36", LOGO="#FFB547", LOGO_SHADOW="#FFB547",
+        ACTIVE="rgba(255,181,71,.07)", STATUS_BG="#FFB547", STATUS_FG="#120D08",
+        HEAT=["#35230F", "#5A3B1F", "#A97B4B", "#FFB547", "#FFE6B3"],
+        SWATCH=["#1A130C", "#35230F", "#5A3B1F", "#A97B4B", "#EBCB98", "#FFB547", "#FFE6B3", "#FF5A36"],
+        FONT="'IBM Plex Mono', 'SFMono-Regular', Consolas, Menlo, 'DejaVu Sans Mono', 'Liberation Mono', monospace",
+        CRT=True,
+    ),
+}
+
+
+def use(theme):
+    """Troca a paleta ativa: as funções abaixo leem estes globais."""
+    globals().update(THEMES[theme])
+
+
+use("dark")
 
 W = 900          # largura de todos os painéis
 CW = 0.6         # largura de um caractere monoespaçado, em em
@@ -34,10 +74,11 @@ USER = "0ph1s@core"
 # Base
 # ---------------------------------------------------------------------------
 
-STYLE = f"""
-text {{ font-family: 'IBM Plex Mono', 'SFMono-Regular', Consolas, Menlo, 'DejaVu Sans Mono', 'Liberation Mono', monospace; }}
-.dim {{ fill: {DIM}; }} .amb {{ fill: {AMBER}; }} .hot {{ fill: {HOT}; }}
-.txt {{ fill: {TEXT}; }} .wire {{ fill: {WIRE}; }} .glass {{ fill: {GLASS}; }}
+def style():
+    return f"""
+text {{ font-family: {FONT}; }}
+.dim {{ fill: {DIM}; }} .amb {{ fill: {AMBER}; }} .hot {{ fill: {HOT}; }} .usr {{ fill: {USR}; }}
+.txt {{ fill: {TEXT}; }} .wire {{ fill: {WIRE}; }} .glass {{ fill: {GLASS}; }} .status {{ fill: {STATUS_FG}; }}
 .glow {{ filter: url(#glow); }}
 .crt {{ animation: flick 6s steps(1) infinite; }}
 .blink {{ animation: blink 1.06s steps(1) infinite; }}
@@ -56,10 +97,13 @@ text {{ font-family: 'IBM Plex Mono', 'SFMono-Regular', Consolas, Menlo, 'DejaVu
 
 
 def defs(w, h):
+    # sem CRT o "brilho" vira um filtro neutro: o GitHub é plano
+    blur = '<feGaussianBlur stdDeviation="2.2" result="b"/>' if CRT else ""
+    merge = '<feMergeNode in="b"/>' if CRT else ""
     return f"""<defs>
   <filter id="glow" x="-20%" y="-40%" width="140%" height="180%">
-    <feGaussianBlur stdDeviation="2.2" result="b"/>
-    <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    {blur}
+    <feMerge>{merge}<feMergeNode in="SourceGraphic"/></feMerge>
   </filter>
   <pattern id="scan" width="4" height="3" patternUnits="userSpaceOnUse">
     <rect y="2" width="4" height="1" fill="#000" opacity=".16"/>
@@ -78,18 +122,19 @@ def defs(w, h):
 
 
 def svg(h, body, label, w=W):
-    """Envelope comum: vidro, conteúdo, scanlines, vinheta e a faixa que rola."""
+    """Envelope comum: fundo, conteúdo e, no tema axio, scanlines, vinheta e a faixa que rola."""
+    tube = f"""
+  <rect class="roll" style="--h:{h + 120}px" width="{w}" height="120" fill="url(#band)"/>
+  <rect width="{w}" height="{h}" fill="url(#scan)"/>
+  <rect width="{w}" height="{h}" fill="url(#vig)"/>""" if CRT else ""
     return f"""<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" viewBox="0 0 {w} {h}" role="img" aria-label="{escape(label)}">
-<style>{STYLE}</style>
+<style>{style()}</style>
 {defs(w, h)}
 <g clip-path="url(#tube)">
   <rect width="{w}" height="{h}" fill="{GLASS}"/>
-  <g class="crt">
+  <g class="{'crt' if CRT else ''}">
 {body}
-  </g>
-  <rect class="roll" style="--h:{h + 120}px" width="{w}" height="120" fill="url(#band)"/>
-  <rect width="{w}" height="{h}" fill="url(#scan)"/>
-  <rect width="{w}" height="{h}" fill="url(#vig)"/>
+  </g>{tube}
 </g>
 <rect x=".5" y=".5" width="{w - 1}" height="{h - 1}" rx="6" fill="none" stroke="{WIRE}"/>
 </svg>
@@ -109,7 +154,7 @@ def delay(sec):
 
 
 def prompt(x, y, cmd, size=14):
-    return t(x, y, f'<tspan class="amb">{USER}</tspan><tspan class="dim">:~$ </tspan><tspan class="txt">{e(cmd)}</tspan>', "txt", size)
+    return t(x, y, f'<tspan class="usr">{USER}</tspan><tspan class="dim">:~$ </tspan><tspan class="txt">{e(cmd)}</tspan>', "txt", size)
 
 
 def typed(x, y, cmd, begin, size=14, cid="type"):
@@ -123,7 +168,7 @@ def typed(x, y, cmd, begin, size=14, cid="type"):
     return f"""<clipPath id="{cid}"><rect x="{x0}" y="{y - size}" width="0" height="{size + 6}">
   <animate attributeName="width" values="{vals}" dur="{dur:.2f}s" begin="{begin}s" calcMode="discrete" fill="freeze"/>
 </rect></clipPath>
-{t(x, y, f'<tspan class="amb">{USER}</tspan><tspan class="dim">:~$ </tspan>', "txt", size)}
+{t(x, y, f'<tspan class="usr">{USER}</tspan><tspan class="dim">:~$ </tspan>', "txt", size)}
 <g clip-path="url(#{cid})">{t(x0, y, e(cmd), "txt", size)}</g>"""
 
 
@@ -132,7 +177,7 @@ def caret(x, y, size=14, extra=""):
 
 
 def bar(x, y, w, left, right, active=True):
-    fill = "rgba(255,181,71,.07)" if active else GLASS_2
+    fill = ACTIVE if active else GLASS_2
     cls = "amb" if active else "dim"
     return f"""<rect x="{x}" y="{y}" width="{w}" height="26" fill="{fill}"/>
 <line x1="{x}" y1="{y + 26.5}" x2="{x + w}" y2="{y + 26.5}" stroke="{WIRE_2}"/>
@@ -184,8 +229,8 @@ def ansi_logo(word, x, y, cw, ch):
             elif g == "╝":
                 lines.append(f"M{cx + d:.1f} {y0:.1f}V{cy + d:.1f}H{x0:.1f}M{cx - d:.1f} {y0:.1f}V{cy - d:.1f}H{x0:.1f}")
             c += 1
-    return (f'<path d="{"".join(lines)}" fill="none" stroke="{AMBER}" stroke-opacity=".6" stroke-width="1.3"/>'
-            f'<path d="{"".join(blocks)}" fill="{AMBER}"/>'), len(rows[0]) * cw
+    return (f'<path d="{"".join(lines)}" fill="none" stroke="{LOGO_SHADOW}" stroke-opacity=".6" stroke-width="1.3"/>'
+            f'<path d="{"".join(blocks)}" fill="{LOGO}"/>'), len(rows[0]) * cw
 
 
 # ---------------------------------------------------------------------------
@@ -196,7 +241,7 @@ def header():
     h = 440
     p = []
     p.append(bar(0, 0, W, "0ph1s@core: ~  —  tty1", "online", active=False))
-    p.append(f'<rect class="led" x="{W - 76}" y="10" width="7" height="7" fill="{AMBER}" filter="url(#glow)"/>')
+    p.append(f'<rect class="led" x="{W - 76}" y="10" width="7" height="7" fill="{LIVE}" filter="url(#glow)"/>')
 
     boot = [
         ("montando /dev/dados", "ok"),
@@ -224,14 +269,13 @@ def header():
         ("shell", "python · js · haskell"),
         ("foco", "dados · web · baixo nível"),
     ]
-    g = [t(ix, 186, '<tspan class="amb">peterson</tspan><tspan class="dim">@</tspan><tspan class="amb">0ph1s</tspan>', "txt", 14),
+    g = [t(ix, 186, '<tspan class="usr">peterson</tspan><tspan class="dim">@</tspan><tspan class="amb">0ph1s</tspan>', "txt", 14),
          f'<line x1="{ix}" y1="196" x2="{ix + 250}" y2="196" stroke="{WIRE}" stroke-dasharray="3 3"/>']
     for i, (k, v) in enumerate(info):
         y = 218 + i * 19
         g.append(t(ix, y, e(k), "dim", 13))
         g.append(t(vx, y, e(v), "hot" if k == "nome" else "txt", 13))
-    ramp = [GLASS_2, WIRE_2, WIRE, DIM, TEXT, AMBER, HOT, HAZARD]
-    for i, c in enumerate(ramp):
+    for i, c in enumerate(SWATCH):
         g.append(f'<rect x="{ix + i * 26}" y="{218 + 6 * 19 - 4}" width="22" height="12" fill="{c}"/>')
     p.append(f'<g class="a" {delay(3.2)}>{"".join(g)}</g>')
 
@@ -322,10 +366,11 @@ def stack():
     ], kw=120))
 
     # barra de status do tmux
-    p.append(f'<rect x="0" y="{h - 28}" width="{W}" height="28" fill="{AMBER}"/>')
+    p.append(f'<rect x="0" y="{h - 28}" width="{W}" height="28" fill="{STATUS_BG}"/>')
+    p.append(f'<line x1="0" y1="{h - 28.5}" x2="{W}" y2="{h - 28.5}" stroke="{WIRE}"/>')
     p.append(t(12, h - 9, '<tspan font-weight="700">[0ph1s]</tspan>   '
-                          '<tspan font-weight="700">0:data-science*</tspan>   1:web   2:pesquisa', "glass", 12.5))
-    p.append(t(W - 12, h - 9, "ciência de dados · 2026", "glass", 12.5, 'text-anchor="end"'))
+                          '<tspan font-weight="700" class="amb">0:data-science*</tspan>   1:web   2:pesquisa', "status", 12.5))
+    p.append(t(W - 12, h - 9, "ciência de dados · 2026", "status", 12.5, 'text-anchor="end"'))
     return svg(h, "\n".join(p), "Stack: Data Science (machine learning, estatística, PCA, pandas, scikit-learn), "
                                 "Web (React, WebGL, GSAP, Django) e Pesquisa (Haskell, iniciação científica, LaTeX).")
 
@@ -340,7 +385,7 @@ def card(i, repo, title, desc, stack, tag):
     p.append(f'<line x1="0" y1="30.5" x2="{w}" y2="30.5" stroke="{WIRE_2}"/>')
     p.append(t(16, 20, f"CH{i}", "amb glow", 13, 'font-weight="700"'))
     p.append(t(58, 20, e(tag), "dim", 12))
-    p.append(f'<rect class="blink" x="{w - 62}" y="14" width="7" height="7" fill="{HAZARD}"/>')
+    p.append(f'<rect class="blink" x="{w - 62}" y="14" width="7" height="7" fill="{LIVE}"/>')
     p.append(t(w - 16, 21, "live", "dim", 12, 'text-anchor="end"'))
 
     p.append(t(16, 60, e(title), "hot glow", 17))
@@ -428,7 +473,7 @@ def diag(d):
         p.append(t(26, y, k, "dim", 12.5))
         p.append(t(300, y, e(v), "hot", 12.5, 'text-anchor="end"'))
         p.append(f'<line x1="26" y1="{y + 8}" x2="300" y2="{y + 8}" stroke="{WIRE_2}" stroke-dasharray="1 3"/>')
-    p.append(f'<rect class="led" x="{300 - 6 * CW * 12.5 - 16:.1f}" y="{60 + 5 * 24 - 8}" width="7" height="7" fill="{AMBER}" filter="url(#glow)"/>')
+    p.append(f'<rect class="led" x="{300 - 6 * CW * 12.5 - 16:.1f}" y="{60 + 5 * 24 - 8}" width="7" height="7" fill="{LIVE}" filter="url(#glow)"/>')
 
     # coluna direita: linguagens como barras de caracteres
     top = d["langs"][:6]
@@ -452,7 +497,7 @@ def diag(d):
     p.append(t(26, y0 - 10, "atividade · últimas 53 semanas", "amb", 12.5))
     weeks = d["weeks"][-53:]
     peak = max((c for w in weeks for c in w), default=0) or 1
-    ramp = [WIRE_2, WIRE, DIM, AMBER, HOT]
+    ramp = HEAT
     step = (W - 52) / 53
     size = step - 3
     for wi, week in enumerate(weeks):
@@ -484,8 +529,7 @@ def footer():
     return svg(h, "\n".join(p), "exit. Obrigado pela visita.")
 
 
-def main():
-    OUT.mkdir(exist_ok=True)
+def render(data):
     files = {
         "header.svg": header(),
         "stack.svg": stack(),
@@ -493,14 +537,24 @@ def main():
         "cmd-stack.svg": strip("tmux attach -t stack", "3 painéis"),
         "cmd-projetos.svg": strip("git log --author=0ph1s", "6 canais"),
         "cmd-diag.svg": strip("./diagnostico --github", "gh api graphql"),
-        "diag.svg": diag(github_data()),
+        "diag.svg": diag(data),
     }
     for i, prj in enumerate(PROJECTS, 1):
         files[f"ch{i}.svg"] = card(i, *prj)
-    for name, content in files.items():
-        (OUT / name).write_text(content, encoding="utf-8")
-        print("ok", name)
+    return files
+
+
+def main(themes=("dark", "light")):
+    data = github_data()
+    for theme in themes:
+        use(theme)
+        out = OUT / theme
+        out.mkdir(parents=True, exist_ok=True)
+        files = render(data)
+        for name, content in files.items():
+            (out / name).write_text(content, encoding="utf-8")
+        print("ok", theme, len(files), "arquivos")
 
 
 if __name__ == "__main__":
-    main()
+    main(tuple(sys.argv[1:]) or ("dark", "light"))
