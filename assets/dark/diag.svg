@@ -38,7 +38,7 @@ text { font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'L
   <clipPath id="tube"><rect width="900" height="384" rx="6"/></clipPath>
 </defs>
 <text x="0" y="16" font-size="14" class="txt" ><tspan class="usr">0ph1s@core</tspan><tspan class="dim">:~$ </tspan><tspan class="txt">./diagnostico --github</tspan></text>
-<text x="0" y="16" font-size="12" class="dim" ></text><text x="900" y="16" font-size="12" class="dim" text-anchor="end">snapshot 05.11.2026</text>
+<text x="0" y="16" font-size="12" class="dim" ></text><text x="900" y="16" font-size="12" class="dim" text-anchor="end">snapshot 06.11.2026</text>
 <text x="0" y="56" font-size="12" class="dim" >~/sistema</text>
 <text x="0" y="82" font-size="12.5" class="dim" >REPOS</text>
 <text x="270" y="82" font-size="12.5" class="hot" text-anchor="end">12 públicos</text>
@@ -586,6 +586,7 @@ text { font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'L
 <rect x="883.0" y="282.0" width="14.0" height="14.0" rx="2" fill="#151b23"/>
 <rect x="883.0" y="298.9" width="14.0" height="14.0" rx="2" fill="#151b23"/>
 <rect x="883.0" y="315.9" width="14.0" height="14.0" rx="2" fill="#151b23"/>
+<rect x="883.0" y="332.9" width="14.0" height="14.0" rx="2" fill="#151b23"/>
 <text x="780" y="380.8679245283019" font-size="11" class="dim" text-anchor="end">menos</text>
 <rect x="788" y="371.8679245283019" width="11" height="11" rx="2" fill="#151b23"/>
 <rect x="804" y="371.8679245283019" width="11" height="11" rx="2" fill="#033a16"/>
